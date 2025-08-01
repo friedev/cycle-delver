@@ -1,0 +1,31 @@
+[gd_scene load_steps=3 format=3 uid="uid://3nxyp7h67hfw"]
+
+[ext_resource type="Script" uid="uid://dkbodoewpo82t" path="res://src/loop.gd" id="1_eewff"]
+[ext_resource type="Script" uid="uid://csk7g82a18dv2" path="res://src/player.gd" id="2_gh0ne"]
+
+[node name="Main" type="Node2D"]
+
+[node name="Loop" type="Node2D" parent="."]
+script = ExtResource("1_eewff")
+radius = 256.0
+
+[node name="Loop2" type="Node2D" parent="Loop"]
+script = ExtResource("1_eewff")
+radius = 64.0
+
+[node name="Loop3" type="Node2D" parent="Loop"]
+script = ExtResource("1_eewff")
+radius = 64.0
+angle = 3.14159
+
+[node name="Loop4" type="Node2D" parent="Loop"]
+script = ExtResource("1_eewff")
+radius = 64.0
+angle = -0.785398
+
+[node name="Camera2D" type="Camera2D" parent="."]
+
+[node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop")]
+script = ExtResource("2_gh0ne")
+angle = -1.5708
+loop = NodePath("../Loop")

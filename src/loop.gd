@@ -1,0 +1,155 @@
+class_name Loop extends Node2D
+
+## Counterclockwise (-1) and clockwise (+1.0).
+const DIRECTIONS := [-1.0, +1.0]
+
+# Note: If the maximum radius of all children is expressed as 1/R, where R is
+# the parent radius, the total radius of an infinite number of descendants of
+# that child will not exceed 1/(R - 1). In other words, this is the minimum
+# amount of separation between child loops that ensures their descendants will
+# never intersect. For instance, the radius of all descendants of children each
+# with radius 1/4 is bounded by 1/3.
+# 
+# You can use this Python code to see how the value asymptotically converges:
+#
+# >>> total_radius = 0.0
+# >>> current_radius = 1.0
+# >>> mult = 0.25
+# >>> for i in range(5):
+# ...     current_radius *= mult
+# ...     total_radius += current_radius
+# ...     print(total_radius)
+# ...
+# 0.25
+# 0.3125
+# 0.328125
+# 0.33203125
+# 0.3330078125
+
+@export var radius: float:
+	set(value):
+		assert(value > 0.0)
+		radius = value
+		queue_redraw()
+## The position of the loop represented as the angle from the center of its
+## parent loop. Undefined for the root loop.
+@export_range(-180.0, 180.0, 0.001, "radians_as_degrees") var angle: float:
+	set(value):
+		angle = value
+		update_position.call_deferred()
+@export var border_color: Color = Color.BLACK
+@export var fill_color: Color = ProjectSettings.get_setting("rendering/environment/defaults/default_clear_color")
+
+## I don't know the proper term for this, but this is the angle (around the
+## center of the PARENT) of the arc spanning from the loop's center to the point
+## at which it intersects the parent.
+var radial_angle := INF:
+	get:
+		if radial_angle == INF:
+			# Parent radius squared (2R^2)
+			var pr2 := 2.0 * pow(get_parent_loop().radius, 2.0)
+			# https://www.mathsisfun.com/algebra/trig-solving-sss-triangles.html
+			# cos(A) = (b^2 + c^2 - a^2) / 2bc
+			# cos(A) = (R^2 + R^2 - r^2) / 2RR
+			# A = acos((2R^2 - r^2) / 2R^2)
+			radial_angle = acos((pr2 - pow(radius, 2.0)) / pr2)
+		return radial_angle
+
+## Also don't know the term for this, but this is the angle (around the center
+## of THIS LOOP) spanning from the direction to the center of the parent to the
+## point at which this loop intersects the parent.
+var intersection_angle := INF:
+	get:
+		if intersection_angle == INF:
+			# https://www.mathsisfun.com/algebra/trig-solving-sss-triangles.html
+			# cos(B) = (c^2 + a^2 - b^2) / 2ca
+			# cos(B) = (R^2 + r^2 - R^2) / 2Rr
+			# B = acos((r^2) / 2Rr)
+			intersection_angle = acos(pow(radius, 2.0) / (2.0 * radius * get_parent_loop().radius))
+		return intersection_angle
+
+
+func _ready() -> void:
+	if get_parent_loop() != null:
+		update_position.call_deferred()
+	queue_redraw()
+
+
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, radius, fill_color, true)
+	draw_circle(Vector2.ZERO, radius, border_color, false, 4, true)
+
+
+func update_position() -> void:
+	position = Vector2(get_parent_loop().radius, 0).rotated(angle)
+
+
+func get_parent_loop() -> Loop:
+	return get_parent() as Loop
+
+
+## Get the angle from the center of the PARENT to the point at which this loop
+## intersects the parent on the side facing `direction` (i.e. the rest of this
+## loop lies immediately in the opposite direction around the parent).
+func get_parent_angle(direction: float) -> float:
+	return angle + signf(direction) * radial_angle
+
+
+## Get the angle from the center of THIS LOOP to the point at which this loop
+## intersects the parent on the side facing `direction` (i.e. the rest of
+## this loop lies immediately in the opposite direction around the parent).
+func get_intersection_angle(direction: float) -> float:
+	return angle + signf(direction) * (PI - intersection_angle)
+
+
+## Get the angles of all intersections around this loop, including intersections
+## with children and intersections with the parent.
+func get_intersection_angles() -> Array[float]:
+	var angles: Array[float] = []
+	for child_loop: Loop in get_children():
+		for direction in DIRECTIONS:
+			angles.append(child_loop.get_parent_angle(direction))
+	if get_parent_loop() != null:
+		for direction in DIRECTIONS:
+			angles.append(get_intersection_angle(direction))
+	return angles
+
+
+## Get the angle of the next intersection of any kind, starting from
+## `from_angle` and increasing/decreasing according to the sign of `direction`.
+func get_next_intersection_angle(from_angle: float, direction: float) -> float:
+	var next_angle: float
+	var min_difference: float = INF
+	for to_angle in get_intersection_angles():
+		var difference := angle_difference(from_angle, to_angle)
+		difference *= signf(direction)
+		while difference < 0:
+			difference += 2 * PI
+		if difference > 0.0 and difference < min_difference:
+			next_angle = to_angle
+			min_difference = difference
+	return next_angle
+
+
+## Return the loop intersecting with this loop at the given angle.
+func get_intersection(at_angle: float) -> Loop:
+	for child_loop: Loop in get_children():
+		for direction in DIRECTIONS:
+			if is_equal_approx(at_angle, child_loop.get_parent_angle(direction)):
+				return child_loop
+	if get_parent_loop() != null:
+		for direction in DIRECTIONS:
+			if is_equal_approx(at_angle, get_intersection_angle(direction)):
+				return get_parent_loop()
+	return null
+
+
+## Get the direction around the parent that the player would travel if moving
+## outward from the current intersection with the parent. If there is no
+## intersection with the parent here, return NAN.
+func get_parent_intersection_direction(at_angle: float) -> float:
+	for direction in DIRECTIONS:
+		if is_equal_approx(at_angle, get_intersection_angle(direction)):
+			return direction
+	assert(false)
+	return NAN
