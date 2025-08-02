@@ -46,7 +46,7 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, Loop.DRAW_RADIUS / 12.0, Color.WHITE, true, -1.0, true)
 
 
-func _unhandled_key_input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if moving:
 		return
 	handle_input_event(event)
@@ -59,6 +59,22 @@ func handle_input_event(event: InputEvent) -> void:
 		move_to_next_vertex(input_direction)
 	elif event.is_action_pressed("move_out"):
 		if vertex != null and vertex == loop.get_parent_loop():
+			move_out()
+	elif event.is_action_pressed("move_toward_mouse"):
+		var mouse_angle := global_position.angle_to_point(get_global_mouse_position())
+		var movement_angles: Array[float] = get_movement_angles()
+		var closest_angle_index: int
+		var closest_angle_difference := INF
+		for i in range(len(movement_angles)):
+			var difference := absf(angle_difference(mouse_angle, movement_angles[i]))
+			if difference < closest_angle_difference:
+				closest_angle_index = i
+				closest_angle_difference = difference
+		if closest_angle_index == 0:
+			move_to_next_vertex(-1.0)
+		elif closest_angle_index == 1:
+			move_to_next_vertex(+1.0)
+		else:
 			move_out()
 
 
@@ -152,10 +168,9 @@ func update_sprite() -> void:
 
 
 ## Return the angles representing the directions in which the player can
-## currently move. (Not currently used, but could be useful for a mouse-based
-## movement system.)
+## currently move.
 func get_movement_angles() -> Array[float]:
-	var angles := [angle - PI * 0.5, angle + PI * 0.5]
+	var angles: Array[float] = [angle - PI * 0.5, angle + PI * 0.5]
 	if vertex == loop.get_parent():
 		angles.append(angle)
 	return angles
