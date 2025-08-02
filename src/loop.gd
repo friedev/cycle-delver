@@ -44,20 +44,13 @@ static var hues_by_depth: Array[float]
 
 ## Get the hue for vertices at this depth.
 static func depth_to_hue(depth_arg: int) -> float:
-	while len(hues_by_depth) <= depth_arg + 1:
-		var hue: float
-		# Ensure hue is sufficiently different from any other hue
-		var hue_is_different := false
-		while not hue_is_different:
-			hue = randf()
-			hue_is_different = true
-			for other_hue in hues_by_depth:
-				if absf(hue - other_hue) < 0.1:
-					hue_is_different = false
-					break
-		hues_by_depth.append(hue)
-		if len(hues_by_depth) == 1:
-			RenderingServer.set_default_clear_color(hue_to_fill_color(hue))
+	if len(hues_by_depth) < MAX_DEPTH + 2:
+		var hue_count := MAX_DEPTH + 2
+		var hue_offset := randf() / hue_count
+		for i in range(MAX_DEPTH + 2):
+			hues_by_depth.append(hue_offset + float(i) / hue_count)
+		hues_by_depth.shuffle()
+		RenderingServer.set_default_clear_color(hue_to_fill_color(hues_by_depth[0]))
 	return hues_by_depth[depth_arg + 1]
 
 
