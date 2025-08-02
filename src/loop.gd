@@ -150,24 +150,30 @@ func get_parent_intersection_direction(at_angle: float) -> float:
 
 
 func generate_root() -> void:
-	generate_vertices(true, true)
+	generate_vertices(true, true, true)
 	assign_angles()
 
 
 func generate_vertices(
 	passable_forward: bool,
-	passable_backward: bool
+	passable_backward: bool,
+	force_cycle := false
 ) -> void:
 	var random_direction := DIRECTIONS[randi() % len(DIRECTIONS)]
-	var other_passable_forward := randi() % 2 == 0 if passable_forward else false
-	var other_passable_backward := randi() % 2 == 0 if passable_backward else false
-	# TODO more elegant way of writing this
-	if randi() % 2 == 0:
-		generate_vertex(random_direction, 3, passable_forward, passable_backward)
-		generate_vertex(-random_direction, 3, other_passable_forward, other_passable_backward)
+	# For now, don't allow dead ends (less fun to have to backtrack)
+	assert(passable_forward or passable_backward)
+	# If this loop is overall passable in both directions, add a chance of
+	# making one side only passable forward and/or the other only passable
+	# backward
+	if passable_forward and passable_backward:
+		var other_passable_forward := not force_cycle and randf() < 0.25
+		var other_passable_backward := not force_cycle and randf() < 0.25
+		generate_vertex(random_direction, 3, true, other_passable_backward)
+		generate_vertex(-random_direction, 3, other_passable_forward, true)
+	# If this loop is only passable in one direction, leave it that way
 	else:
-		generate_vertex(random_direction, 3, passable_forward, other_passable_backward)
-		generate_vertex(-random_direction, 3, other_passable_forward, passable_backward)
+		generate_vertex(random_direction, 3, passable_forward, passable_backward)
+		generate_vertex(-random_direction, 3, passable_forward, passable_backward)
 
 
 func generate_vertex(
@@ -176,18 +182,26 @@ func generate_vertex(
 	passable_forward: bool,
 	passable_backward: bool
 ) -> void:
+	var valve_count := 0 if passable_forward and passable_backward else randi_range(1, slots)
+	var valves_generated := 0
 	for i in range(slots):
 		var is_child := depth <= randi() % MAX_DEPTH
+		var is_valve := randi() % slots < valve_count - valves_generated
+		if is_valve:
+			valves_generated += 1
 		# Child
 		if is_child:
-			append_child(direction).generate_vertices(passable_forward, passable_backward)
+			append_child(direction).generate_vertices(
+				passable_forward or not is_valve,
+				passable_backward or not is_valve
+			)
 		else:
-			# Nothing (open arc)
-			if passable_forward and passable_backward:
-				pass
-			# Valve (or "wall")
-			else:
+			# Valve (or wall)
+			if is_valve:
 				append_valve(direction, passable_forward, passable_backward)
+			# Nothing (open arc)
+			else:
+				pass
 
 
 func append_child(direction: float) -> Loop:
