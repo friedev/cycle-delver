@@ -1,7 +1,7 @@
 class_name Valve extends Vertex
 
 ## Valve radius as a fraction of parent loop radius.
-const VALVE_RADIUS := 1.0 / 32.0
+const VALVE_RADIUS := 1.0 / 6.0
 const VALVE_DRAW_SCALE := Loop.DRAW_RADIUS / 6.0
 
 const SCENE := preload("res://src/valve.tscn")
