@@ -174,206 +174,179 @@ func get_random_direction() -> float:
 
 
 func generate_root() -> void:
-	generate_corridor_loop(0.0)
+	generate_corridor_loop()
 	assign_angles()
 	Key.generate_display_text()
 	get_tree().call_group("keys", "update_label")
 	get_tree().call_group("valves", "update_lock")
 
 
-func generate_corridor_loop(valve_chance := 0.75) -> void:
-	var direction_slots: Array[int] = [0, 0]
-	for i in range(len(DIRECTIONS)):
-		for j in range(SLOTS_PER_SIDE):
-			if should_add_child():
-				direction_slots[i] += 1
-	var valves: Array[bool]
-	for i in range(len(DIRECTIONS)):
-		valves.append(randf() < valve_chance)
-	var forward_direction := get_random_direction()
-	while len(vertices_ccw) < direction_slots[0] or len(vertices_cw) < direction_slots[1]:
-		var random_index := randi() % len(DIRECTIONS)
-		var random_direction := DIRECTIONS[random_index]
-		var remaining_slots := direction_slots[random_index] - len(get_direction_vertices(random_direction))
-		assert(remaining_slots >= 0)
-		if remaining_slots == 0:
-			random_index = 1 - random_index
-			random_direction = DIRECTIONS[random_index]
-			remaining_slots = direction_slots[random_index] - len(get_direction_vertices(random_direction))
-		assert(remaining_slots > 0)
-		if len(vertices_ccw) < direction_slots[0] and len(vertices_cw) < direction_slots[1]:
-			var choice := randi() % 2
-			# Lock and key on either side
-			if choice == 0:
-				var key_id := Key.new_id()
-				generate_key(random_direction, 1, key_id)
-				generate_locked_wall(-random_direction, 1, key_id)
-				continue
-			# Fallthrough
-			else:
-				pass
-		if valves[random_index]:
-			var choice := randi() % 2
-			# Valve
-			if choice == 0:
-				generate_valve(random_direction, randi_range(1, remaining_slots), random_direction == forward_direction)
-				continue
-			# Fallthrough
-			else:
-				pass
-		# Corridor
-		generate_corridor(random_direction, randi_range(1, remaining_slots))
-
-
-## Generate a path passable in both directions.
-func generate_corridor(direction: float, slots: int) -> void:
-	if slots == 0:
-		return
-	if slots == 1:
-		# Passable child
-		if should_add_child():
-			append_loop(direction).generate_corridor_loop()
-		# Nothing (open arc)
-		else:
-			return
+func generate_corridor_loop() -> void:
+	var random_direction := get_random_direction()
+	var choice := randi() % 6
+	#   <-+-<
+	#  /     \
+	# K       L
+	#  \     /
+	#   \-+-/
+	if choice == 0:
+		var key_id := Key.new_id()
+		generate_valve(random_direction, true)
+		generate_key(random_direction, key_id)
+		generate_valve(-random_direction, false)
+		generate_locked_wall(-random_direction, key_id)
+	#  K1-+-L1
+	#  /     \
+	# ^       V
+	#  \     /
+	#  L2-+-K2
+	elif choice == 1:
+		var key_id_1 := Key.new_id()
+		var key_id_2 := Key.new_id()
+		generate_key(random_direction, key_id_1)
+		generate_valve(random_direction, false)
+		generate_locked_wall(random_direction, key_id_2)
+		generate_locked_wall(-random_direction, key_id_1)
+		generate_valve(-random_direction, true)
+		generate_key(-random_direction, key_id_2)
+	#   <-+-<
+	#  /     \
+	# K1      L2
+	#  \     /
+	#  L1-+-K2
+	elif choice == 2:
+		var key_id_1 := Key.new_id()
+		var key_id_2 := Key.new_id()
+		generate_valve(random_direction, true)
+		generate_key(random_direction, key_id_1)
+		generate_locked_wall(random_direction, key_id_1)
+		generate_valve(-random_direction, false)
+		generate_locked_wall(-random_direction, key_id_2)
+		generate_key(-random_direction, key_id_2)
+	#   <-+-L2
+	#  /     \
+	# K1      K2
+	#  \     /
+	#  L1-+->
+	elif choice == 3:
+		var key_id_1 := Key.new_id()
+		var key_id_2 := Key.new_id()
+		generate_valve(random_direction, true)
+		generate_key(random_direction, key_id_1)
+		generate_locked_wall(random_direction, key_id_1)
+		generate_locked_wall(-random_direction, key_id_2)
+		generate_key(-random_direction, key_id_2)
+		generate_valve(-random_direction, false)
+	#   <-+-<
+	#  /     \
+	# |       |
+	#  \     /
+	#   \-+-/
+	elif choice == 4:
+		generate_valve(random_direction, true)
+		generate_valve(-random_direction, false)
+	#   K-+-L
+	#  /     \
+	# --      |
+	#  \     /
+	#   \-+-/
+	elif choice == 5:
+		var key_id := Key.new_id()
+		generate_key(random_direction, key_id)
+		#append_wall(random_direction)
+		generate_locked_wall(-random_direction, key_id)
 	else:
-		var choice := randi() % 2
-		if choice == 0:
-			generate_corridor(direction, 1)
-			generate_corridor(direction, slots - 1)
-		elif choice == 1:
-			generate_corridor(direction, slots - 1)
-			generate_corridor(direction, 1)
-		else:
-			assert(false)
+		assert(false)
+	fill_with_corridors()
+
+
+func fill_with_corridors() -> void:
+	for direction in DIRECTIONS:
+		var direction_vertices := get_direction_vertices(direction)
+		for i in range(SLOTS_PER_SIDE - len(direction_vertices)):
+			if should_add_child():
+				var loop := append_loop(direction)
+				loop.generate_corridor_loop()
+				direction_vertices.pop_back()
+				direction_vertices.insert(randi_range(0, len(direction_vertices)), loop)
 
 
 ## Generate a valve passable in one direction (forward or backward).
-func generate_valve(direction: float, slots: int, forward: bool) -> void:
-	assert(slots > 0)
-	if slots == 1:
-		# Child acting as a valve
-		if should_add_child():
-			var child := append_loop(direction)
-			for child_direction in DIRECTIONS:
-				child.generate_valve(child_direction, SLOTS_PER_SIDE, forward)
-		# Valve vertex
-		else:
-			append_valve(direction, forward, not forward)
+func generate_valve(direction: float, forward: bool) -> void:
+	# Child acting as a valve
+	if should_add_child():
+		var child := append_loop(direction)
+		for child_direction in DIRECTIONS:
+			child.generate_valve(child_direction, forward)
+		child.fill_with_corridors()
+	# Valve vertex
 	else:
-		var choice := randi() % 7
-		if choice == 0:
-			generate_corridor(direction, 1)
-			generate_valve(direction, slots - 1, forward)
-		elif choice == 1:
-			generate_valve(direction, slots - 1, forward)
-			generate_corridor(direction, 1)
-		elif choice == 2:
-			generate_valve(direction, 1, forward)
-			generate_corridor(direction, slots - 1)
-		elif choice == 3:
-			generate_corridor(direction, slots - 1)
-			generate_valve(direction, 1, forward)
-		elif choice == 4:
-			generate_valve(direction, 1, forward)
-			generate_valve(direction, slots - 1, forward)
-		elif choice == 5:
-			generate_valve(direction, slots - 1, forward)
-			generate_valve(direction, 1, forward)
-		elif choice == 6:
-			var key_id := Key.new_id()
-			generate_key(direction, 1, key_id)
-			generate_locked_wall(direction, 1, key_id)
-		else:
-			assert(false)
+		append_valve(direction, forward, not forward)
 
 
 ## Generate a locked valve; it can be passed in one direction, but cannot be
 ## passed in the other direction until unlocked.
 func generate_locked_valve(
 	direction: float,
-	slots: int,
 	forward: bool,
 	key_id: int
 ) -> void:
-	assert(slots > 0)
 	assert(key_id >= 0)
-	if slots == 1:
-		# Child acting as a locked valve
-		if should_add_child():
-			var child := append_loop(direction)
-			var choice := randi() % 3
-			# Locked valve on both sides
-			if choice == 0:
-				for child_direction in DIRECTIONS:
-					child.generate_locked_valve(child_direction, SLOTS_PER_SIDE, forward, key_id)
-			# Locked valve on one side, normal valve on other side
-			elif choice == 1:
-				var random_direction := get_random_direction()
-				child.generate_locked_valve(random_direction, SLOTS_PER_SIDE, forward, key_id)
-				child.generate_valve(-random_direction, SLOTS_PER_SIDE, forward)
-			# Normal valve on one side, locked wall on other side
-			elif choice == 2:
-				var random_direction := get_random_direction()
-				child.generate_valve(random_direction, SLOTS_PER_SIDE, forward)
-				child.generate_locked_wall(-random_direction, SLOTS_PER_SIDE, key_id)
-		# Locked valve vertex
-		else:
-			append_valve(direction, forward, not forward, key_id)
-	else:
-		var choice := randi() % 2
+	# Child acting as a locked valve
+	if should_add_child():
+		var child := append_loop(direction)
+		var choice := randi() % 3
+		# Locked valve on both sides
 		if choice == 0:
-			generate_locked_valve(direction, 1, forward, key_id)
-			generate_corridor(direction, slots - 1)
+			for child_direction in DIRECTIONS:
+				child.generate_locked_valve(child_direction, forward, key_id)
+		# Locked valve on one side, normal valve on other side
 		elif choice == 1:
-			generate_corridor(direction, slots - 1)
-			generate_locked_valve(direction, 1, forward, key_id)
-		else:
-			assert(false)
-		
+			var random_direction := get_random_direction()
+			child.generate_locked_valve(random_direction, forward, key_id)
+			child.generate_valve(-random_direction, forward)
+		# Normal valve on one side, locked wall on other side
+		elif choice == 2:
+			var random_direction := get_random_direction()
+			child.generate_valve(random_direction, forward)
+			child.generate_locked_wall(-random_direction, key_id)
+	# Locked valve vertex
+	else:
+		append_valve(direction, forward, not forward, key_id)
+
 
 ## Generate a locked wall; it cannot be passed until unlocked.
-func generate_locked_wall(direction: float, slots: int, key_id: int) -> void:
-	assert(slots > 0)
+func generate_locked_wall(direction: float, key_id: int) -> void:
 	assert(key_id >= 0)
-	if slots == 1:
-		# Child acting as a locked wall
-		if should_add_child():
-			var child := append_loop(direction)
-			# Locked wall on both sides
-			for child_direction in DIRECTIONS:
-				child.generate_locked_wall(child_direction, SLOTS_PER_SIDE, key_id)
-		# Locked wall vertex
-		else:
-			append_wall(direction, key_id)
+	# Child acting as a locked wall
+	if should_add_child():
+		var child := append_loop(direction)
+		# Locked wall on both sides
+		for child_direction in DIRECTIONS:
+			child.generate_locked_wall(child_direction, key_id)
+		child.fill_with_corridors()
+	# Locked wall vertex
 	else:
-		var choice := randi() % 2
-		if choice == 0:
-			generate_locked_wall(direction, 1, key_id)
-			generate_corridor(direction, slots - 1)
-		elif choice == 1:
-			generate_corridor(direction, slots - 1)
-			generate_locked_wall(direction, 1, key_id)
-		else:
-			assert(false)
+		append_wall(direction, key_id)
 
 
 # Generate a key.
-func generate_key(direction: float, slots: int, key_id: int) -> void:
-	assert(slots > 0)
-	if slots == 1:
-		# Child containing a key
-		if should_add_child():
-			# TODO key
-			append_loop(direction).generate_corridor_loop(key_id)
-		# Key vertex
-		else:
-			append_key(direction, key_id)
+func generate_key(direction: float, key_id: int) -> void:
+	# Child containing a key
+	if should_add_child():
+		var loop := append_loop(direction)
+		loop.generate_key(get_random_direction(), key_id)
+		loop.fill_with_corridors()
+	# Key vertex
+	else:
+		append_key(direction, key_id)
 
 
 func append_vertex(direction: float, vertex: Vertex) -> void:
 	vertex.parent_direction = direction
-	get_direction_vertices(direction).append(vertex)
+	var direction_vertices := get_direction_vertices(direction)
+	assert(len(direction_vertices) < SLOTS_PER_SIDE)
+	direction_vertices.append(vertex)
 	add_child(vertex)
 
 
