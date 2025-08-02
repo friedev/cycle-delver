@@ -22,6 +22,9 @@ static var instance: Player
 ## current loop, parent of the current loop, or another vertex like a valve.
 var vertex: Vertex
 
+## List of IDs of keys the player has collected.
+var collected_keys: Array[int]
+
 # Data for tracking movement animation
 var moving: bool
 var target_angle: float
@@ -89,6 +92,20 @@ func finish_movement() -> void:
 		angle = loop.get_intersection_angle(-last_direction)
 	else:
 		vertex = new_vertex
+		if vertex is Key:
+			var key: Key = vertex
+			collected_keys.append(key.key_id)
+			key.remove_from_parent()
+			SignalBus.key_collected.emit(key)
+			vertex = null
+		elif vertex is Valve:
+			var valve: Valve = vertex
+			if valve.key_id in self.collected_keys:
+				SignalBus.key_removed.emit(valve.key_id)
+				self.collected_keys.erase(valve.key_id)
+				valve.remove_from_parent()
+				valve.queue_free()
+				vertex = null
 	update_sprite()
 	move_finished.emit()
 
@@ -129,9 +146,9 @@ func update_position() -> void:
 
 
 func update_sprite() -> void:
-	var new_scale := Vector2.ONE * pow(Loop.CHILD_RADIUS, maxi(0, loop.depth - 1))
+	var new_scale := Vector2.ONE * pow(Loop.CHILD_RADIUS, maxi(0, loop.depth))
 	create_tween().tween_property(self, "scale", new_scale, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	modulate = loop.get_border_color()
+	modulate = Color.from_hsv(loop.get_hue(), 0.5, 0.5)
 
 
 ## Return the angles representing the directions in which the player can

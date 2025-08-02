@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://3nxyp7h67hfw"]
+[gd_scene load_steps=5 format=3 uid="uid://3nxyp7h67hfw"]
 
 [ext_resource type="Script" uid="uid://dkbodoewpo82t" path="res://src/loop.gd" id="1_eewff"]
 [ext_resource type="Script" uid="uid://dwc5lpsh6ew12" path="res://src/my_camera.gd" id="2_5q4o7"]
 [ext_resource type="Script" uid="uid://csk7g82a18dv2" path="res://src/player.gd" id="2_gh0ne"]
+[ext_resource type="Script" uid="uid://col70vogyjsa7" path="res://src/collected_keys.gd" id="4_fyndt"]
 
 [node name="Main" type="Node2D"]
 
@@ -17,3 +18,10 @@ loop = NodePath("../Loop")
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(0.25, 0.25)
 script = ExtResource("2_5q4o7")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="CollectedKeys" type="Node2D" parent="CanvasLayer"]
+position = Vector2(16, 15)
+scale = Vector2(0.167, 0.167)
+script = ExtResource("4_fyndt")

@@ -37,8 +37,39 @@ const DESCENDANT_RADIUS_BOUND := 1.0 / (1.0 / CHILD_RADIUS - 1.0)
 # 0.33203125
 # 0.3330078125
 
-## Hue of the color of loops for each depth.
+## Hue of the color of loops for each depth, OFFSET BY 1. Depth 0 is actually
+## used for storing the environment clear color.
 static var hues_by_depth: Array[float]
+
+
+## Get the hue for vertices at this depth.
+static func depth_to_hue(depth_arg: int) -> float:
+	while len(hues_by_depth) <= depth_arg + 1:
+		var hue: float
+		# Ensure hue is sufficiently different from any other hue
+		var hue_is_different := false
+		while not hue_is_different:
+			hue = randf()
+			hue_is_different = true
+			for other_hue in hues_by_depth:
+				if absf(hue - other_hue) < 0.1:
+					hue_is_different = false
+					break
+		hues_by_depth.append(hue)
+		if len(hues_by_depth) == 1:
+			RenderingServer.set_default_clear_color(hue_to_fill_color(hue))
+	return hues_by_depth[depth_arg + 1]
+
+
+## Get the fill color associated with a hue.
+static func hue_to_fill_color(hue: float) -> Color:
+	return Color.from_hsv(hue, 0.125, 0.875)
+
+
+## Get the border color associated with a hue.
+static func hue_to_border_color(hue: float) -> Color:
+	return Color.from_hsv(hue, 0.25, 0.25)
+
 
 var depth: int
 
@@ -61,31 +92,20 @@ func _draw() -> void:
 
 
 func get_hue() -> float:
-	while len(hues_by_depth) <= depth:
-		var hue: float
-		# Hue is sufficiently different from any other hue
-		var hue_different := false
-		while not hue_different:
-			hue = randf()
-			hue_different = true
-			for other_hue in hues_by_depth:
-				if absf(hue - other_hue) < 0.1:
-					hue_different = false
-					break
-		hues_by_depth.append(hue)
-	return hues_by_depth[depth]
+	return depth_to_hue(depth)
 
 
 func get_fill_color() -> Color:
-	return Color.from_hsv(get_hue(), 0.125, 0.875)
+	return hue_to_fill_color(depth_to_hue(depth))
 
 
 func get_border_color() -> Color:
-	return Color.from_hsv(get_hue(), 0.25, 0.25)
+	return hue_to_border_color(depth_to_hue(depth))
 
 
 func get_direction_vertices(direction: float) -> Array[Vertex]:
-	return vertices_ccw if direction <= 0.0 else vertices_cw
+	assert(direction != 0.0)
+	return vertices_ccw if direction < 0.0 else vertices_cw
 
 
 ## Get the angles of all vertices around this loop, including intersections with
@@ -149,81 +169,248 @@ func get_parent_intersection_direction(at_angle: float) -> float:
 	return NAN
 
 
+## Randomly decides if a child loop should be created instead of a basic vertex,
+## based on depth.
+func should_add_child() -> bool:
+	return depth <= randi() % MAX_DEPTH
+
+
+## Return a random direction (-1.0 or +1.0).
+func get_random_direction() -> float:
+	return DIRECTIONS[randi() % len(DIRECTIONS)]
+
+
 func generate_root() -> void:
-	generate_vertices(true, true, true)
+	generate_corridor_loop(0.0)
 	assign_angles()
+	Key.generate_display_text()
+	get_tree().call_group("keys", "update_label")
+	get_tree().call_group("valves", "update_lock")
 
 
-func generate_vertices(
-	passable_forward: bool,
-	passable_backward: bool,
-	force_cycle := false
-) -> void:
-	var random_direction := DIRECTIONS[randi() % len(DIRECTIONS)]
-	# For now, don't allow dead ends (less fun to have to backtrack)
-	assert(passable_forward or passable_backward)
-	# If this loop is overall passable in both directions, add a chance of
-	# making one side only passable forward and/or the other only passable
-	# backward
-	if passable_forward and passable_backward:
-		var other_passable_forward := not force_cycle and randf() < 0.25
-		var other_passable_backward := not force_cycle and randf() < 0.25
-		generate_vertex(random_direction, 3, true, other_passable_backward)
-		generate_vertex(-random_direction, 3, other_passable_forward, true)
-	# If this loop is only passable in one direction, leave it that way
-	else:
-		generate_vertex(random_direction, 3, passable_forward, passable_backward)
-		generate_vertex(-random_direction, 3, passable_forward, passable_backward)
-
-
-func generate_vertex(
-	direction: float,
-	slots: int,
-	passable_forward: bool,
-	passable_backward: bool
-) -> void:
-	var valve_count := 0 if passable_forward and passable_backward else randi_range(1, slots)
-	var valves_generated := 0
-	for i in range(slots):
-		var is_child := depth <= randi() % MAX_DEPTH
-		var is_valve := randi() % slots < valve_count - valves_generated
-		if is_valve:
-			valves_generated += 1
-		# Child
-		if is_child:
-			append_child(direction).generate_vertices(
-				passable_forward or not is_valve,
-				passable_backward or not is_valve
-			)
-		else:
-			# Valve (or wall)
-			if is_valve:
-				append_valve(direction, passable_forward, passable_backward)
-			# Nothing (open arc)
+func generate_corridor_loop(valve_chance := 0.75) -> void:
+	var direction_slots: Array[int] = [0, 0]
+	for i in range(len(DIRECTIONS)):
+		for j in range(SLOTS_PER_SIDE):
+			if should_add_child():
+				direction_slots[i] += 1
+	var valves: Array[bool]
+	for i in range(len(DIRECTIONS)):
+		valves.append(randf() < valve_chance)
+	var forward_direction := get_random_direction()
+	while len(vertices_ccw) < direction_slots[0] or len(vertices_cw) < direction_slots[1]:
+		var random_index := randi() % len(DIRECTIONS)
+		var random_direction := DIRECTIONS[random_index]
+		var remaining_slots := direction_slots[random_index] - len(get_direction_vertices(random_direction))
+		assert(remaining_slots >= 0)
+		if remaining_slots == 0:
+			random_index = 1 - random_index
+			random_direction = DIRECTIONS[random_index]
+			remaining_slots = direction_slots[random_index] - len(get_direction_vertices(random_direction))
+		assert(remaining_slots > 0)
+		if len(vertices_ccw) < direction_slots[0] and len(vertices_cw) < direction_slots[1]:
+			var choice := randi() % 2
+			# Lock and key on either side
+			if choice == 0:
+				var key_id := Key.new_id()
+				generate_key(random_direction, 1, key_id)
+				generate_locked_wall(-random_direction, 1, key_id)
+				continue
+			# Fallthrough
 			else:
 				pass
+		if valves[random_index]:
+			var choice := randi() % 2
+			# Valve
+			if choice == 0:
+				generate_valve(random_direction, randi_range(1, remaining_slots), random_direction == forward_direction)
+				continue
+			# Fallthrough
+			else:
+				pass
+		# Corridor
+		generate_corridor(random_direction, randi_range(1, remaining_slots))
 
 
-func append_child(direction: float) -> Loop:
-	var direction_vertices := get_direction_vertices(direction)
-	var child := Loop.new()
-	child.radius = radius * CHILD_RADIUS
-	child.parent_direction = direction
-	child.depth = depth + 1
-	direction_vertices.append(child)
-	add_child(child)
-	return child
+## Generate a path passable in both directions.
+func generate_corridor(direction: float, slots: int) -> void:
+	if slots == 0:
+		return
+	if slots == 1:
+		# Passable child
+		if should_add_child():
+			append_loop(direction).generate_corridor_loop()
+		# Nothing (open arc)
+		else:
+			return
+	else:
+		var choice := randi() % 2
+		if choice == 0:
+			generate_corridor(direction, 1)
+			generate_corridor(direction, slots - 1)
+		elif choice == 1:
+			generate_corridor(direction, slots - 1)
+			generate_corridor(direction, 1)
+		else:
+			assert(false)
 
 
-func append_valve(direction: float, passable_forward: bool, passable_backward: bool) -> Valve:
-	var direction_vertices := get_direction_vertices(direction)
-	var valve := Valve.new()
+## Generate a valve passable in one direction (forward or backward).
+func generate_valve(direction: float, slots: int, forward: bool) -> void:
+	assert(slots > 0)
+	if slots == 1:
+		# Child acting as a valve
+		if should_add_child():
+			var child := append_loop(direction)
+			for child_direction in DIRECTIONS:
+				child.generate_valve(child_direction, SLOTS_PER_SIDE, forward)
+		# Valve vertex
+		else:
+			append_valve(direction, forward, not forward)
+	else:
+		var choice := randi() % 7
+		if choice == 0:
+			generate_corridor(direction, 1)
+			generate_valve(direction, slots - 1, forward)
+		elif choice == 1:
+			generate_valve(direction, slots - 1, forward)
+			generate_corridor(direction, 1)
+		elif choice == 2:
+			generate_valve(direction, 1, forward)
+			generate_corridor(direction, slots - 1)
+		elif choice == 3:
+			generate_corridor(direction, slots - 1)
+			generate_valve(direction, 1, forward)
+		elif choice == 4:
+			generate_valve(direction, 1, forward)
+			generate_valve(direction, slots - 1, forward)
+		elif choice == 5:
+			generate_valve(direction, slots - 1, forward)
+			generate_valve(direction, 1, forward)
+		elif choice == 6:
+			var key_id := Key.new_id()
+			generate_key(direction, 1, key_id)
+			generate_locked_wall(direction, 1, key_id)
+		else:
+			assert(false)
+
+
+## Generate a locked valve; it can be passed in one direction, but cannot be
+## passed in the other direction until unlocked.
+func generate_locked_valve(
+	direction: float,
+	slots: int,
+	forward: bool,
+	key_id: int
+) -> void:
+	assert(slots > 0)
+	assert(key_id >= 0)
+	if slots == 1:
+		# Child acting as a locked valve
+		if should_add_child():
+			var child := append_loop(direction)
+			var choice := randi() % 3
+			# Locked valve on both sides
+			if choice == 0:
+				for child_direction in DIRECTIONS:
+					child.generate_locked_valve(child_direction, SLOTS_PER_SIDE, forward, key_id)
+			# Locked valve on one side, normal valve on other side
+			elif choice == 1:
+				var random_direction := get_random_direction()
+				child.generate_locked_valve(random_direction, SLOTS_PER_SIDE, forward, key_id)
+				child.generate_valve(-random_direction, SLOTS_PER_SIDE, forward)
+			# Normal valve on one side, locked wall on other side
+			elif choice == 2:
+				var random_direction := get_random_direction()
+				child.generate_valve(random_direction, SLOTS_PER_SIDE, forward)
+				child.generate_locked_wall(-random_direction, SLOTS_PER_SIDE, key_id)
+		# Locked valve vertex
+		else:
+			append_valve(direction, forward, not forward, key_id)
+	else:
+		var choice := randi() % 2
+		if choice == 0:
+			generate_locked_valve(direction, 1, forward, key_id)
+			generate_corridor(direction, slots - 1)
+		elif choice == 1:
+			generate_corridor(direction, slots - 1)
+			generate_locked_valve(direction, 1, forward, key_id)
+		else:
+			assert(false)
+		
+
+## Generate a locked wall; it cannot be passed until unlocked.
+func generate_locked_wall(direction: float, slots: int, key_id: int) -> void:
+	assert(slots > 0)
+	assert(key_id >= 0)
+	if slots == 1:
+		# Child acting as a locked wall
+		if should_add_child():
+			var child := append_loop(direction)
+			# Locked wall on both sides
+			for child_direction in DIRECTIONS:
+				child.generate_locked_wall(child_direction, SLOTS_PER_SIDE, key_id)
+		# Locked wall vertex
+		else:
+			append_wall(direction, key_id)
+	else:
+		var choice := randi() % 2
+		if choice == 0:
+			generate_locked_wall(direction, 1, key_id)
+			generate_corridor(direction, slots - 1)
+		elif choice == 1:
+			generate_corridor(direction, slots - 1)
+			generate_locked_wall(direction, 1, key_id)
+		else:
+			assert(false)
+
+
+# Generate a key.
+func generate_key(direction: float, slots: int, key_id: int) -> void:
+	assert(slots > 0)
+	if slots == 1:
+		# Child containing a key
+		if should_add_child():
+			# TODO key
+			append_loop(direction).generate_corridor_loop(key_id)
+		# Key vertex
+		else:
+			append_key(direction, key_id)
+
+
+func append_vertex(direction: float, vertex: Vertex) -> void:
+	vertex.parent_direction = direction
+	get_direction_vertices(direction).append(vertex)
+	add_child(vertex)
+
+
+func append_loop(direction: float) -> Loop:
+	var loop := Loop.new()
+	loop.radius = radius * CHILD_RADIUS
+	loop.depth = depth + 1
+	append_vertex(direction, loop)
+	return loop
+
+
+func append_valve(direction: float, passable_forward: bool, passable_backward: bool, key_id := -1) -> Valve:
+	var valve: Valve = Valve.SCENE.instantiate()
 	valve.radius = radius * Valve.VALVE_RADIUS
 	valve.passable_ccw = passable_forward if direction < 0.0 else passable_backward
 	valve.passable_cw = passable_forward if direction > 0.0 else passable_backward
-	direction_vertices.append(valve)
-	add_child(valve)
+	valve.key_id = key_id
+	append_vertex(direction, valve)
 	return valve
+
+
+func append_wall(direction: float, key_id := -1) -> Valve:
+	return append_valve(direction, false, false, key_id)
+
+
+func append_key(direction: float, key_id: int) -> Key:
+	var key: Key = Key.SCENE.instantiate()
+	key.key_id = key_id
+	append_vertex(direction, key)
+	return key
 
 
 func assign_angles() -> void:

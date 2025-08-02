@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3 uid="uid://x4rjdnjtfr63"]
+
+[ext_resource type="Script" uid="uid://xlgp2mfbxoy5" path="res://src/key.gd" id="1_0r25b"]
+[ext_resource type="Texture2D" uid="uid://ba8uq341dchhj" path="res://assets/sprites/key.svg" id="2_1hnao"]
+
+[node name="Key" type="Node2D" node_paths=PackedStringArray("sprite", "label") groups=["keys"]]
+script = ExtResource("1_0r25b")
+sprite = NodePath("Sprite2D")
+label = NodePath("Label")
+metadata/_custom_type_script = "uid://cfeb2cao4nrm"
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_1hnao")
+
+[node name="Label" type="Label" parent="."]
+modulate = Color(0, 0, 0, 1)
+offset_left = -80.0
+offset_top = -153.0
+offset_right = 79.0
+theme_override_font_sizes/font_size = 112
+text = "88"
+horizontal_alignment = 1

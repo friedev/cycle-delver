@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3 uid="uid://jpehha3aldqf"]
+
+[ext_resource type="Script" uid="uid://lo23xw2p6kyb" path="res://src/valve.gd" id="1_vvidc"]
+[ext_resource type="Texture2D" uid="uid://b7tl7syhfrrv1" path="res://assets/sprites/lock.svg" id="2_vty0f"]
+
+[node name="Valve" type="Node2D" node_paths=PackedStringArray("lock", "lock_sprite", "lock_label") groups=["valves"]]
+script = ExtResource("1_vvidc")
+lock = NodePath("Lock")
+lock_sprite = NodePath("Lock/Sprite2D")
+lock_label = NodePath("Lock/Label")
+
+[node name="Lock" type="Node2D" parent="."]
+visible = false
+position = Vector2(0, -5)
+scale = Vector2(0.5, 0.5)
+
+[node name="Sprite2D" type="Sprite2D" parent="Lock"]
+texture = ExtResource("2_vty0f")
+
+[node name="Label" type="Label" parent="Lock"]
+modulate = Color(0, 0, 0, 1)
+offset_left = -80.0
+offset_top = -28.0
+offset_right = 79.0
+offset_bottom = 125.0
+theme_override_font_sizes/font_size = 112
+text = "88"
+horizontal_alignment = 1

@@ -75,3 +75,10 @@ func get_parent_angle(direction: float) -> float:
 ## this loop lies immediately in the opposite direction around the parent).
 func get_intersection_angle(direction: float) -> float:
 	return angle + signf(direction) * (PI - intersection_angle)
+
+
+## Remove this vertex from its parent's array of vertices, and remove it as a
+## child.
+func remove_from_parent() -> void:
+	get_parent_loop().get_direction_vertices(parent_direction).erase(self)
+	get_parent().remove_child(self)
