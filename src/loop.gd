@@ -41,10 +41,9 @@ static var hues_by_depth: Array[float]
 var radius := DRAW_RADIUS
 ## The position of the loop represented as the angle from the center of its
 ## parent loop. Undefined for the root loop.
-@export_range(-180.0, 180.0, 0.001, "radians_as_degrees") var angle: float:
-	set(value):
-		angle = value
-		update_position.call_deferred()
+var angle: float
+## Which side of the parent this loop is on.
+var parent_direction: float
 
 var depth: int
 
@@ -76,6 +75,8 @@ var intersection_angle := INF:
 			intersection_angle = acos(pow(radius, 2.0) / (2.0 * radius * get_parent_loop().radius))
 		return intersection_angle
 
+var vertices_ccw: Array[Loop]
+var vertices_cw: Array[Loop]
 
 func _ready() -> void:
 	if has_parent_loop():
@@ -112,7 +113,7 @@ func get_hue() -> float:
 			hue = randf()
 			hue_different = true
 			for other_hue in hues_by_depth:
-				if absf(hue - other_hue) < 0.125:
+				if absf(hue - other_hue) < 0.1:
 					hue_different = false
 					break
 		hues_by_depth.append(hue)
@@ -125,6 +126,10 @@ func get_fill_color() -> Color:
 
 func get_border_color() -> Color:
 	return Color.from_hsv(get_hue(), 0.25, 0.25)
+
+
+func get_direction_vertices(direction: float) -> Array[Loop]:
+	return vertices_ccw if direction <= 0.0 else vertices_cw
 
 
 ## Get the angle from the center of the PARENT to the point at which this loop
@@ -194,28 +199,32 @@ func get_parent_intersection_direction(at_angle: float) -> float:
 	return NAN
 
 
-func generate_children(max_depth: int) -> void:
-	if depth > max_depth:
-		return
-	var child_count := randi_range(2, 4)
-	var bound := DESCENDANT_RADIUS_BOUND * 2.0
-	for i in range(child_count):
+func generate_direction_children(direction: float, max_depth: int) -> void:
+	var start_angle := (
+		angle - signf(parent_direction) * PI * 0.5
+		if has_parent_loop()
+		else -PI * 0.5
+	)
+	var vertex_count := randi_range(0, 3)
+	var direction_vertices := get_direction_vertices(direction)
+	for i in range(3):
+		if len(direction_vertices) == vertex_count:
+			break
+		var spare_slots := 3 - vertex_count - i
+		if randi() % 3 < spare_slots:
+			continue
 		var child := Loop.new()
+		direction_vertices.append(child)
 		child.radius = radius * CHILD_RADIUS
-		var valid_angle := false
-		# TODO give up after a certain number of tries
-		while not valid_angle:
-			valid_angle = true
-			child.angle = randf() * TAU
-			for other_child: Loop in self.get_children():
-				if Vector2.RIGHT.rotated(child.angle).distance_to(Vector2.RIGHT.rotated(other_child.angle)) < bound:
-					valid_angle = false
-					break
-			if has_parent_loop():
-				for direction in DIRECTIONS:
-					if Vector2.RIGHT.rotated(child.angle).distance_to(Vector2.RIGHT.rotated(get_intersection_angle(direction))) < bound:
-						valid_angle = false
-						break
+		child.angle = start_angle + signf(direction) * (i + 1) * PI / 4.0
+		child.parent_direction = direction
 		child.depth = depth + 1
 		add_child(child)
 		child.generate_children(max_depth)
+
+
+func generate_children(max_depth: int) -> void:
+	if depth > max_depth:
+		return
+	for direction in DIRECTIONS:
+		generate_direction_children(direction, max_depth)
