@@ -18,10 +18,9 @@ static var instance: Player
 	set(value):
 		loop = value
 		update_position.call_deferred()
-## The loop intersecting the player's current loop at the player's current
-## position. The player is only able to move in one direction on this loop, and
-## doing so will cause it to become the current loop.
-var intersection: Loop
+## The vertex that the player is currently at. This can be a child of the
+## current loop, parent of the current loop, or another vertex like a valve.
+var vertex: Vertex
 
 # Data for tracking movement animation
 var moving: bool
@@ -54,9 +53,9 @@ func handle_input_event(event: InputEvent) -> void:
 	assert(not moving)
 	var input_direction := Input.get_axis("move_ccw", "move_cw")
 	if not is_zero_approx(input_direction):
-		move_to_next_intersection(input_direction)
+		move_to_next_vertex(input_direction)
 	elif event.is_action_pressed("move_out"):
-		if intersection != null:
+		if vertex != null and vertex == loop.get_parent_loop():
 			move_out()
 
 
@@ -83,32 +82,46 @@ func animate_movement(delta: float) -> void:
 func finish_movement() -> void:
 	moving = false
 	angle = target_angle
-	var new_intersection := loop.get_intersection(angle)
-	if new_intersection == loop.get_parent_loop():
-		intersection = new_intersection
-	else:
-		intersection = loop
-		loop = new_intersection
+	var new_vertex := loop.get_vertex(angle)
+	if new_vertex is Loop and new_vertex != loop.get_parent_loop():
+		vertex = loop
+		loop = new_vertex
 		angle = loop.get_intersection_angle(-last_direction)
+	else:
+		vertex = new_vertex
 	update_sprite()
 	move_finished.emit()
 
 
 ## Move in the given direction around the current loop until reaching the next
 ## intersection (with a child of the current loop or with its parent).
-func move_to_next_intersection(direction: float) -> void:
+func move_to_next_vertex(direction: float) -> void:
+	# Prevent moving against valves, but allow backing away from an impassable
+	# valve (`direction == last_direction`)
+	if vertex is Valve and not (vertex as Valve).is_passable(direction) and direction == last_direction:
+		return
+
+	# Skip over valves that we can move through
+	var skip_next_vertex := true
+	var next_vertex_angle := angle
+	var next_vertex: Vertex
+	while skip_next_vertex:
+		next_vertex_angle = loop.get_next_vertex_angle(next_vertex_angle, direction)
+		next_vertex = loop.get_vertex(next_vertex_angle)
+		skip_next_vertex = next_vertex is Valve and (next_vertex as Valve).is_passable(direction)
+
 	last_direction = direction
-	move_to_angle(loop.get_next_intersection_angle(angle, direction))
+	move_to_angle(next_vertex_angle)
 
 
 ## If at an intersection with the current loop's parent, move along it until
 ## reaching the next intersection along the parent in that direction.
 func move_out() -> void:
-	assert(intersection != null)
+	assert(vertex != null and vertex == loop.get_parent_loop())
 	var direction := loop.get_parent_intersection_direction(angle)
 	angle = loop.get_parent_angle(direction)
 	loop = loop.get_parent()
-	move_to_next_intersection(direction)
+	move_to_next_vertex(direction)
 
 
 func update_position() -> void:
@@ -126,6 +139,6 @@ func update_sprite() -> void:
 ## movement system.)
 func get_movement_angles() -> Array[float]:
 	var angles := [angle - PI * 0.5, angle + PI * 0.5]
-	if intersection != null:
+	if vertex == loop.get_parent():
 		angles.append(angle)
 	return angles

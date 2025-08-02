@@ -1,4 +1,4 @@
-class_name Loop extends Node2D
+class_name Loop extends Vertex
 
 const DRAW_RADIUS := 1024.0
 const BORDER_RADIUS := DRAW_RADIUS / 16.0
@@ -9,13 +9,10 @@ const SLOTS_PER_SIDE := 3
 const DIRECTIONS: Array[float] = [-1.0, +1.0]
 
 ## Radius of a child loop as a fraction of its parent's radius.
-const CHILD_RADIUS := 0.25
+const CHILD_RADIUS := 1.0 / 4.0
 ## Maximum radius encompassing all descendants as fraction of the parent radius.
 ## (See math in comment below.)
 const DESCENDANT_RADIUS_BOUND := 1.0 / (1.0 / CHILD_RADIUS - 1.0)
-
-## Hue of the color of loops for each depth.
-static var hues_by_depth: Array[float]
 
 # If the maximum radius of all children is expressed as 1/R, where R is the
 # parent radius, the total radius of an infinite number of descendants of that
@@ -40,52 +37,21 @@ static var hues_by_depth: Array[float]
 # 0.33203125
 # 0.3330078125
 
-var radius := DRAW_RADIUS
-## The position of the loop represented as the angle from the center of its
-## parent loop. Undefined for the root loop.
-var angle: float
-## Which side of the parent this loop is on.
-var parent_direction: float
+## Hue of the color of loops for each depth.
+static var hues_by_depth: Array[float]
 
 var depth: int
 
-## I don't know the proper term for this, but this is the angle (around the
-## center of the PARENT) of the arc spanning from the loop's center to the point
-## at which it intersects the parent.
-var radial_angle := INF:
-	get:
-		if radial_angle == INF:
-			# Parent radius squared (2R^2)
-			var pr2 := 2.0 * pow(get_parent_loop().radius, 2.0)
-			# https://www.mathsisfun.com/algebra/trig-solving-sss-triangles.html
-			# cos(A) = (b^2 + c^2 - a^2) / 2bc
-			# cos(A) = (R^2 + R^2 - r^2) / 2RR
-			# A = acos((2R^2 - r^2) / 2R^2)
-			radial_angle = acos((pr2 - pow(radius, 2.0)) / pr2)
-		return radial_angle
-
-## Also don't know the term for this, but this is the angle (around the center
-## of THIS LOOP) spanning from the direction to the center of the parent to the
-## point at which this loop intersects the parent.
-var intersection_angle := INF:
-	get:
-		if intersection_angle == INF:
-			# https://www.mathsisfun.com/algebra/trig-solving-sss-triangles.html
-			# cos(B) = (c^2 + a^2 - b^2) / 2ca
-			# cos(B) = (R^2 + r^2 - R^2) / 2Rr
-			# B = acos((r^2) / 2Rr)
-			intersection_angle = acos(pow(radius, 2.0) / (2.0 * radius * get_parent_loop().radius))
-		return intersection_angle
-
-var vertices_ccw: Array[Node2D]
-var vertices_cw: Array[Node2D]
+var vertices_ccw: Array[Vertex]
+var vertices_cw: Array[Vertex]
 
 func _ready() -> void:
 	if has_parent_loop():
+		super._ready()
 		scale = Vector2.ONE * 0.25
-		update_position.call_deferred()
 	else:
-		generate_children()
+		radius = DRAW_RADIUS
+		generate_root()
 	queue_redraw()
 
 
@@ -94,20 +60,8 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, DRAW_RADIUS, get_border_color(), false, BORDER_RADIUS, true)
 
 
-func update_position() -> void:
-	position = Vector2(DRAW_RADIUS, 0).rotated(angle)
-
-
-func get_parent_loop() -> Loop:
-	return get_parent() as Loop
-
-
-func has_parent_loop() -> bool:
-	return get_parent_loop() != null
-
-
 func get_hue() -> float:
-	if len(hues_by_depth) <= depth:
+	while len(hues_by_depth) <= depth:
 		var hue: float
 		# Hue is sufficiently different from any other hue
 		var hue_different := false
@@ -130,43 +84,33 @@ func get_border_color() -> Color:
 	return Color.from_hsv(get_hue(), 0.25, 0.25)
 
 
-func get_direction_vertices(direction: float) -> Array[Node2D]:
+func get_direction_vertices(direction: float) -> Array[Vertex]:
 	return vertices_ccw if direction <= 0.0 else vertices_cw
 
 
-## Get the angle from the center of the PARENT to the point at which this loop
-## intersects the parent on the side facing `direction` (i.e. the rest of this
-## loop lies immediately in the opposite direction around the parent).
-func get_parent_angle(direction: float) -> float:
-	return angle + signf(direction) * radial_angle
-
-
-## Get the angle from the center of THIS LOOP to the point at which this loop
-## intersects the parent on the side facing `direction` (i.e. the rest of
-## this loop lies immediately in the opposite direction around the parent).
-func get_intersection_angle(direction: float) -> float:
-	return angle + signf(direction) * (PI - intersection_angle)
-
-
-## Get the angles of all intersections around this loop, including intersections
-## with children and intersections with the parent.
-func get_intersection_angles() -> Array[float]:
+## Get the angles of all vertices around this loop, including intersections with
+## children, intersections with the parent, and other vertices.
+func get_vertex_angles() -> Array[float]:
 	var angles: Array[float] = []
-	for child_loop: Loop in get_children():
-		for direction in DIRECTIONS:
-			angles.append(child_loop.get_parent_angle(direction))
+	for direction in DIRECTIONS:
+		for vertex in get_direction_vertices(direction):
+			for child_direction in DIRECTIONS:
+				angles.append(vertex.get_parent_angle(child_direction))
+				# Don't append duplicate angles if this is a point vertex
+				if vertex.radius == 0.0:
+					break
 	if has_parent_loop():
 		for direction in DIRECTIONS:
 			angles.append(get_intersection_angle(direction))
 	return angles
 
 
-## Get the angle of the next intersection of any kind, starting from
-## `from_angle` and increasing/decreasing according to the sign of `direction`.
-func get_next_intersection_angle(from_angle: float, direction: float) -> float:
+## Get the angle of the next vertex of any kind, starting from `from_angle` and
+## increasing/decreasing according to the sign of `direction`.
+func get_next_vertex_angle(from_angle: float, direction: float) -> float:
 	var next_angle: float
 	var min_difference: float = INF
-	for to_angle in get_intersection_angles():
+	for to_angle in get_vertex_angles():
 		var difference := angle_difference(from_angle, to_angle)
 		difference *= signf(direction)
 		while difference < 0:
@@ -177,12 +121,16 @@ func get_next_intersection_angle(from_angle: float, direction: float) -> float:
 	return next_angle
 
 
-## Return the loop intersecting with this loop at the given angle.
-func get_intersection(at_angle: float) -> Loop:
-	for child_loop: Loop in get_children():
-		for direction in DIRECTIONS:
-			if is_equal_approx(at_angle, child_loop.get_parent_angle(direction)):
-				return child_loop
+## Return the vertex (child loop intersection, parent loop intersection, or
+## other vertex) at the given angle.
+func get_vertex(at_angle: float) -> Vertex:
+	for direction in DIRECTIONS:
+		for vertex in get_direction_vertices(direction):
+			for child_direction in DIRECTIONS:
+				# TODO might also be useful to check if at_angle lies WITHIN
+				# the vertex, to support the lower accuracy of real-time movement
+				if is_equal_approx(at_angle, vertex.get_parent_angle(child_direction)):
+					return vertex
 	if has_parent_loop():
 		for direction in DIRECTIONS:
 			if is_equal_approx(at_angle, get_intersection_angle(direction)):
@@ -201,7 +149,7 @@ func get_parent_intersection_direction(at_angle: float) -> float:
 	return NAN
 
 
-func generate_children() -> void:
+func generate_root() -> void:
 	generate_vertices(true, true)
 	assign_angles()
 
@@ -233,21 +181,35 @@ func generate_vertex(
 		# Child
 		if is_child:
 			append_child(direction).generate_vertices(passable_forward, passable_backward)
-		# Nothing (open arc)
 		else:
-			# TODO handle not passable sections
-			pass
+			# Nothing (open arc)
+			if passable_forward and passable_backward:
+				pass
+			# Valve (or "wall")
+			else:
+				append_valve(direction, passable_forward, passable_backward)
 
 
 func append_child(direction: float) -> Loop:
 	var direction_vertices := get_direction_vertices(direction)
 	var child := Loop.new()
-	direction_vertices.append(child)
 	child.radius = radius * CHILD_RADIUS
 	child.parent_direction = direction
 	child.depth = depth + 1
+	direction_vertices.append(child)
 	add_child(child)
 	return child
+
+
+func append_valve(direction: float, passable_forward: bool, passable_backward: bool) -> Valve:
+	var direction_vertices := get_direction_vertices(direction)
+	var valve := Valve.new()
+	valve.radius = radius * Valve.VALVE_RADIUS
+	valve.passable_ccw = passable_forward if direction < 0.0 else passable_backward
+	valve.passable_cw = passable_forward if direction > 0.0 else passable_backward
+	direction_vertices.append(valve)
+	add_child(valve)
+	return valve
 
 
 func assign_angles() -> void:
@@ -265,12 +227,8 @@ func assign_angles() -> void:
 			var spare_slots := SLOTS_PER_SIDE - len(direction_vertices) - i
 			if randi() % SLOTS_PER_SIDE < spare_slots:
 				continue
-			var vertex: Node2D = direction_vertices[angles_assigned]
-			var vertex_angle := start_angle + signf(direction) * (i + 1) * PI / 4.0
+			var vertex := direction_vertices[angles_assigned]
+			vertex.angle = start_angle + signf(direction) * (i + 1) * PI / 4.0
 			if vertex is Loop:
-				var loop: Loop = vertex
-				loop.angle = vertex_angle
-				loop.assign_angles()
-			else:
-				vertex.position = Vector2(DRAW_RADIUS, 0).rotated(vertex_angle)
+				(vertex as Loop).assign_angles()
 			angles_assigned += 1
