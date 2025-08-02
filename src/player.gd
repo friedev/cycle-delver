@@ -41,7 +41,7 @@ func _ready() -> void:
 	
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, loop.radius / 12.0, Color.WHITE, true, -1.0)
+	draw_circle(Vector2.ZERO, Loop.DRAW_RADIUS / 12.0, Color.WHITE, true, -1.0, true)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

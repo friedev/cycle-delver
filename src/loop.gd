@@ -1,5 +1,8 @@
 class_name Loop extends Node2D
 
+const DRAW_RADIUS := 1024.0
+const BORDER_RADIUS := DRAW_RADIUS / 16.0
+
 ## Counterclockwise (-1) and clockwise (+1.0).
 const DIRECTIONS := [-1.0, +1.0]
 
@@ -35,11 +38,7 @@ static var hues_by_depth: Array[float]
 # 0.33203125
 # 0.3330078125
 
-@export var radius: float:
-	set(value):
-		assert(value > 0.0)
-		radius = value
-		queue_redraw()
+var radius := DRAW_RADIUS
 ## The position of the loop represented as the angle from the center of its
 ## parent loop. Undefined for the root loop.
 @export_range(-180.0, 180.0, 0.001, "radians_as_degrees") var angle: float:
@@ -80,6 +79,7 @@ var intersection_angle := INF:
 
 func _ready() -> void:
 	if has_parent_loop():
+		scale = Vector2.ONE * 0.25
 		update_position.call_deferred()
 	else:
 		generate_children(4)
@@ -87,13 +87,12 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	var border_width := radius / 16.0
-	draw_circle(Vector2.ZERO, radius, get_fill_color(), true)
-	draw_circle(Vector2.ZERO, radius, get_border_color(), false, border_width)
+	draw_circle(Vector2.ZERO, DRAW_RADIUS, get_fill_color(), true)
+	draw_circle(Vector2.ZERO, DRAW_RADIUS, get_border_color(), false, BORDER_RADIUS, true)
 
 
 func update_position() -> void:
-	position = Vector2(get_parent_loop().radius, 0).rotated(angle)
+	position = Vector2(DRAW_RADIUS, 0).rotated(angle)
 
 
 func get_parent_loop() -> Loop:
@@ -199,6 +198,7 @@ func generate_children(max_depth: int) -> void:
 	if depth > max_depth:
 		return
 	var child_count := randi_range(2, 4)
+	var bound := DESCENDANT_RADIUS_BOUND * 2.0
 	for i in range(child_count):
 		var child := Loop.new()
 		child.radius = radius * CHILD_RADIUS
@@ -208,12 +208,12 @@ func generate_children(max_depth: int) -> void:
 			valid_angle = true
 			child.angle = randf() * TAU
 			for other_child: Loop in self.get_children():
-				if Vector2.RIGHT.rotated(child.angle).distance_squared_to(Vector2.RIGHT.rotated(other_child.angle)) < DESCENDANT_RADIUS_BOUND:
+				if Vector2.RIGHT.rotated(child.angle).distance_to(Vector2.RIGHT.rotated(other_child.angle)) < bound:
 					valid_angle = false
 					break
 			if has_parent_loop():
 				for direction in DIRECTIONS:
-					if Vector2.RIGHT.rotated(child.angle).distance_squared_to(Vector2.RIGHT.rotated(get_intersection_angle(direction))) < DESCENDANT_RADIUS_BOUND:
+					if Vector2.RIGHT.rotated(child.angle).distance_to(Vector2.RIGHT.rotated(get_intersection_angle(direction))) < bound:
 						valid_angle = false
 						break
 		child.depth = depth + 1

@@ -8,7 +8,6 @@
 
 [node name="Loop" type="Node2D" parent="."]
 script = ExtResource("1_eewff")
-radius = 256.0
 
 [node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop")]
 script = ExtResource("2_gh0ne")
@@ -16,5 +15,5 @@ angle = -1.5708
 loop = NodePath("../Loop")
 
 [node name="Camera2D" type="Camera2D" parent="."]
-zoom = Vector2(0.5, 0.5)
+zoom = Vector2(0.25, 0.25)
 script = ExtResource("2_5q4o7")
