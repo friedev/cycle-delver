@@ -2,3 +2,4 @@
 
 - [key](https://fontawesome.com/icons/key?f=classic&s=solid)
 - [lock](https://fontawesome.com/icons/lock?f=classic&s=solid)
+- [crown](https://fontawesome.com/icons/crown?f=classic&s=solid)

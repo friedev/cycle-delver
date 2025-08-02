@@ -18,9 +18,16 @@ static var instance: Player
 	set(value):
 		loop = value
 		update_position.call_deferred()
+## Sprite shown after reaching the goal.
+@export var goal_sprite: Sprite2D
 ## The vertex that the player is currently at. This can be a child of the
 ## current loop, parent of the current loop, or another vertex like a valve.
 var vertex: Vertex
+## Has the player collected the goal item?
+var reached_goal: bool:
+	set(value):
+		reached_goal = value
+		goal_sprite.visible = reached_goal
 
 ## List of IDs of keys the player has collected.
 var collected_keys: Array[int]
@@ -122,6 +129,12 @@ func finish_movement() -> void:
 				valve.remove_from_parent()
 				valve.queue_free()
 				vertex = null
+		elif vertex is Goal:
+			var goal: Goal = vertex
+			goal.remove_from_parent()
+			goal.queue_free()
+			reached_goal = true
+			vertex = null
 	update_sprite()
 	move_finished.emit()
 
@@ -164,7 +177,9 @@ func update_position() -> void:
 func update_sprite() -> void:
 	var new_scale := Vector2.ONE * pow(Loop.CHILD_RADIUS, maxi(0, loop.depth))
 	create_tween().tween_property(self, "scale", new_scale, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	modulate = Color.from_hsv(loop.get_hue(), 0.5, 0.5)
+	var hue := loop.get_hue()
+	self_modulate = Color.from_hsv(hue, 0.5, 0.5)
+	goal_sprite.modulate = Goal.hue_to_color(hue)
 
 
 ## Return the angles representing the directions in which the player can

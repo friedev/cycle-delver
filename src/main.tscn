@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://3nxyp7h67hfw"]
+[gd_scene load_steps=6 format=3 uid="uid://3nxyp7h67hfw"]
 
 [ext_resource type="Script" uid="uid://dkbodoewpo82t" path="res://src/loop.gd" id="1_eewff"]
 [ext_resource type="Script" uid="uid://dwc5lpsh6ew12" path="res://src/my_camera.gd" id="2_5q4o7"]
 [ext_resource type="Script" uid="uid://csk7g82a18dv2" path="res://src/player.gd" id="2_gh0ne"]
+[ext_resource type="Texture2D" uid="uid://d1lxqjsq4cg6w" path="res://assets/sprites/crown.svg" id="3_fyndt"]
 [ext_resource type="Script" uid="uid://col70vogyjsa7" path="res://src/collected_keys.gd" id="4_fyndt"]
 
 [node name="Main" type="Node2D"]
@@ -10,10 +11,17 @@
 [node name="Loop" type="Node2D" parent="."]
 script = ExtResource("1_eewff")
 
-[node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop")]
+[node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop", "goal_sprite")]
 script = ExtResource("2_gh0ne")
 angle = -1.5708
 loop = NodePath("../Loop")
+goal_sprite = NodePath("GoalSprite")
+
+[node name="GoalSprite" type="Sprite2D" parent="Player"]
+visible = false
+position = Vector2(0, -112)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("3_fyndt")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(0.25, 0.25)

@@ -175,10 +175,20 @@ func get_random_direction() -> float:
 
 func generate_root() -> void:
 	generate_corridor_loop()
+	place_goal()
 	assign_angles()
 	Key.generate_display_text()
 	get_tree().call_group("keys", "update_label")
 	get_tree().call_group("valves", "update_lock")
+	
+
+# TODO make this less crappy
+func place_goal() -> void:
+	var goal: Goal = Goal.SCENE.instantiate()
+	vertices_ccw.append(goal)
+	goal.parent_direction = -1.0
+	goal.angle = PI * 0.5
+	add_child(goal)
 
 
 func generate_corridor_loop() -> void:
