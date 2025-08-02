@@ -1,5 +1,8 @@
 class_name Player extends Node2D
 
+signal move_started
+signal move_finished
+
 ## Singleton instance.
 static var instance: Player
 
@@ -34,10 +37,11 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	update_position.call_deferred()
 	queue_redraw()
+	update_sprite()
 	
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 16.0, Color.BLACK, true, -1.0, true)
+	draw_circle(Vector2.ZERO, loop.radius / 12.0, Color.WHITE, true, -1.0)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -65,6 +69,7 @@ func move_to_angle(to_angle: float) -> void:
 	moving = true
 	target_angle = to_angle
 	velocity = 0.0
+	move_started.emit()
 
 
 func animate_movement(delta: float) -> void:
@@ -85,6 +90,8 @@ func finish_movement() -> void:
 		intersection = loop
 		loop = new_intersection
 		angle = loop.get_intersection_angle(-last_direction)
+	update_sprite()
+	move_finished.emit()
 
 
 ## Move in the given direction around the current loop until reaching the next
@@ -106,6 +113,12 @@ func move_out() -> void:
 
 func update_position() -> void:
 	global_position = loop.global_position + Vector2(loop.radius, 0).rotated(angle)
+
+
+func update_sprite() -> void:
+	var new_scale := Vector2.ONE * pow(Loop.CHILD_RADIUS, maxi(0, loop.depth - 1))
+	create_tween().tween_property(self, "scale", new_scale, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	modulate = loop.get_border_color()
 
 
 ## Return the angles representing the directions in which the player can
