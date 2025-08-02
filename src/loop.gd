@@ -77,8 +77,8 @@ var intersection_angle := INF:
 			intersection_angle = acos(pow(radius, 2.0) / (2.0 * radius * get_parent_loop().radius))
 		return intersection_angle
 
-var vertices_ccw: Array[Loop]
-var vertices_cw: Array[Loop]
+var vertices_ccw: Array[Node2D]
+var vertices_cw: Array[Node2D]
 
 func _ready() -> void:
 	if has_parent_loop():
@@ -130,7 +130,7 @@ func get_border_color() -> Color:
 	return Color.from_hsv(get_hue(), 0.25, 0.25)
 
 
-func get_direction_vertices(direction: float) -> Array[Loop]:
+func get_direction_vertices(direction: float) -> Array[Node2D]:
 	return vertices_ccw if direction <= 0.0 else vertices_cw
 
 
@@ -265,6 +265,12 @@ func assign_angles() -> void:
 			var spare_slots := SLOTS_PER_SIDE - len(direction_vertices) - i
 			if randi() % SLOTS_PER_SIDE < spare_slots:
 				continue
-			direction_vertices[angles_assigned].angle = start_angle + signf(direction) * (i + 1) * PI / 4.0
-			direction_vertices[angles_assigned].assign_angles()
+			var vertex: Node2D = direction_vertices[angles_assigned]
+			var vertex_angle := start_angle + signf(direction) * (i + 1) * PI / 4.0
+			if vertex is Loop:
+				var loop: Loop = vertex
+				loop.angle = vertex_angle
+				loop.assign_angles()
+			else:
+				vertex.position = Vector2(DRAW_RADIUS, 0).rotated(vertex_angle)
 			angles_assigned += 1
