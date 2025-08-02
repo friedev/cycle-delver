@@ -2,9 +2,11 @@ class_name Loop extends Node2D
 
 const DRAW_RADIUS := 1024.0
 const BORDER_RADIUS := DRAW_RADIUS / 16.0
+const MAX_DEPTH := 4
+const SLOTS_PER_SIDE := 3
 
 ## Counterclockwise (-1) and clockwise (+1.0).
-const DIRECTIONS := [-1.0, +1.0]
+const DIRECTIONS: Array[float] = [-1.0, +1.0]
 
 ## Radius of a child loop as a fraction of its parent's radius.
 const CHILD_RADIUS := 0.25
@@ -83,7 +85,7 @@ func _ready() -> void:
 		scale = Vector2.ONE * 0.25
 		update_position.call_deferred()
 	else:
-		generate_children(4)
+		generate_children()
 	queue_redraw()
 
 
@@ -199,32 +201,70 @@ func get_parent_intersection_direction(at_angle: float) -> float:
 	return NAN
 
 
-func generate_direction_children(direction: float, max_depth: int) -> void:
+func generate_children() -> void:
+	generate_vertices(true, true)
+	assign_angles()
+
+
+func generate_vertices(
+	passable_forward: bool,
+	passable_backward: bool
+) -> void:
+	var random_direction := DIRECTIONS[randi() % len(DIRECTIONS)]
+	var other_passable_forward := randi() % 2 == 0 if passable_forward else false
+	var other_passable_backward := randi() % 2 == 0 if passable_backward else false
+	# TODO more elegant way of writing this
+	if randi() % 2 == 0:
+		generate_vertex(random_direction, 3, passable_forward, passable_backward)
+		generate_vertex(-random_direction, 3, other_passable_forward, other_passable_backward)
+	else:
+		generate_vertex(random_direction, 3, passable_forward, other_passable_backward)
+		generate_vertex(-random_direction, 3, other_passable_forward, passable_backward)
+
+
+func generate_vertex(
+	direction: float,
+	slots: int,
+	passable_forward: bool,
+	passable_backward: bool
+) -> void:
+	for i in range(slots):
+		var is_child := depth <= randi() % MAX_DEPTH
+		# Child
+		if is_child:
+			append_child(direction).generate_vertices(passable_forward, passable_backward)
+		# Nothing (open arc)
+		else:
+			# TODO handle not passable sections
+			pass
+
+
+func append_child(direction: float) -> Loop:
+	var direction_vertices := get_direction_vertices(direction)
+	var child := Loop.new()
+	direction_vertices.append(child)
+	child.radius = radius * CHILD_RADIUS
+	child.parent_direction = direction
+	child.depth = depth + 1
+	add_child(child)
+	return child
+
+
+func assign_angles() -> void:
 	var start_angle := (
 		angle - signf(parent_direction) * PI * 0.5
 		if has_parent_loop()
 		else -PI * 0.5
 	)
-	var vertex_count := randi_range(0, 3)
-	var direction_vertices := get_direction_vertices(direction)
-	for i in range(3):
-		if len(direction_vertices) == vertex_count:
-			break
-		var spare_slots := 3 - vertex_count - i
-		if randi() % 3 < spare_slots:
-			continue
-		var child := Loop.new()
-		direction_vertices.append(child)
-		child.radius = radius * CHILD_RADIUS
-		child.angle = start_angle + signf(direction) * (i + 1) * PI / 4.0
-		child.parent_direction = direction
-		child.depth = depth + 1
-		add_child(child)
-		child.generate_children(max_depth)
-
-
-func generate_children(max_depth: int) -> void:
-	if depth > max_depth:
-		return
 	for direction in DIRECTIONS:
-		generate_direction_children(direction, max_depth)
+		var direction_vertices := get_direction_vertices(direction)
+		var angles_assigned := 0
+		for i in range(SLOTS_PER_SIDE):
+			if angles_assigned == len(direction_vertices):
+				break
+			var spare_slots := SLOTS_PER_SIDE - len(direction_vertices) - i
+			if randi() % SLOTS_PER_SIDE < spare_slots:
+				continue
+			direction_vertices[angles_assigned].angle = start_angle + signf(direction) * (i + 1) * PI / 4.0
+			direction_vertices[angles_assigned].assign_angles()
+			angles_assigned += 1
