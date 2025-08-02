@@ -80,6 +80,9 @@ func _ready() -> void:
 
 
 func _draw() -> void:
+	# Draw upward line from the root loop representing the entrance to the level
+	if not has_parent_loop():
+		draw_line(Vector2.ZERO, Vector2.UP * DRAW_RADIUS * 10.0, get_border_color(), BORDER_RADIUS, true)
 	draw_circle(Vector2.ZERO, DRAW_RADIUS, get_fill_color(), true)
 	draw_circle(Vector2.ZERO, DRAW_RADIUS, get_border_color(), false, BORDER_RADIUS, true)
 
@@ -175,11 +178,21 @@ func get_random_direction() -> float:
 
 func generate_root() -> void:
 	generate_corridor_loop()
+	place_entrance()
 	place_goal()
 	assign_angles()
 	Key.generate_display_text()
 	get_tree().call_group("keys", "update_label")
 	get_tree().call_group("valves", "update_lock")
+
+
+# TODO make this less crappy
+func place_entrance() -> void:
+	var entrance: Entrance = Entrance.new()
+	vertices_ccw.append(entrance)
+	entrance.parent_direction = -1.0
+	entrance.angle = PI * -0.5
+	add_child(entrance)
 	
 
 # TODO make this less crappy

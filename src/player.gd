@@ -20,14 +20,17 @@ static var instance: Player
 		update_position.call_deferred()
 ## Sprite shown after reaching the goal.
 @export var goal_sprite: Sprite2D
+
 ## The vertex that the player is currently at. This can be a child of the
 ## current loop, parent of the current loop, or another vertex like a valve.
 var vertex: Vertex
+
 ## Has the player collected the goal item?
 var reached_goal: bool:
 	set(value):
 		reached_goal = value
 		goal_sprite.visible = reached_goal
+var game_over: bool
 
 ## List of IDs of keys the player has collected.
 var collected_keys: Array[int]
@@ -44,6 +47,7 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	vertex = loop.get_vertex(angle)
 	update_position.call_deferred()
 	queue_redraw()
 	update_sprite()
@@ -54,18 +58,18 @@ func _draw() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if moving:
+	if moving or game_over:
 		return
 	handle_input_event(event)
 
 
 func handle_input_event(event: InputEvent) -> void:
-	assert(not moving)
+	assert(not moving and not game_over)
 	var input_direction := Input.get_axis("move_ccw", "move_cw")
 	if not is_zero_approx(input_direction):
 		move_to_next_vertex(input_direction)
 	elif event.is_action_pressed("move_out"):
-		if vertex != null and vertex == loop.get_parent_loop():
+		if can_move_out():
 			move_out()
 	elif event.is_action_pressed("move_toward_mouse"):
 		var mouse_angle := global_position.angle_to_point(get_global_mouse_position())
@@ -88,6 +92,14 @@ func handle_input_event(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if moving:
 		animate_movement(delta)
+
+
+func can_move_out() -> bool:
+	return vertex != null and (
+		vertex == loop.get_parent_loop() or (
+			vertex is Entrance and reached_goal
+		)
+	)
 
 
 func move_to_angle(to_angle: float) -> void:
@@ -154,7 +166,11 @@ func move_to_next_vertex(direction: float) -> void:
 	while skip_next_vertex:
 		next_vertex_angle = loop.get_next_vertex_angle(next_vertex_angle, direction)
 		next_vertex = loop.get_vertex(next_vertex_angle)
-		skip_next_vertex = next_vertex is Valve and (next_vertex as Valve).is_passable(direction)
+		skip_next_vertex = (
+			# This first condition should only happen due to the level entrance
+			next_vertex == vertex or
+			(next_vertex is Valve and (next_vertex as Valve).is_passable(direction))
+		)
 
 	last_direction = direction
 	move_to_angle(next_vertex_angle)
@@ -163,11 +179,19 @@ func move_to_next_vertex(direction: float) -> void:
 ## If at an intersection with the current loop's parent, move along it until
 ## reaching the next intersection along the parent in that direction.
 func move_out() -> void:
-	assert(vertex != null and vertex == loop.get_parent_loop())
+	assert(can_move_out())
+	if vertex is Entrance and reached_goal:
+		ascend()
+		return
 	var direction := loop.get_parent_intersection_direction(angle)
 	angle = loop.get_parent_angle(direction)
 	loop = loop.get_parent()
 	move_to_next_vertex(direction)
+
+
+func ascend() -> void:
+	game_over = true
+	create_tween().tween_property(self, "global_position", Vector2.UP * Loop.DRAW_RADIUS * 2.0, 4.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 
 func update_position() -> void:
@@ -176,7 +200,7 @@ func update_position() -> void:
 
 func update_sprite() -> void:
 	var new_scale := Vector2.ONE * pow(Loop.CHILD_RADIUS, maxi(0, loop.depth))
-	create_tween().tween_property(self, "scale", new_scale, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	create_tween().tween_property(self, "scale", new_scale, 0.25).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	var hue := loop.get_hue()
 	self_modulate = Color.from_hsv(hue, 0.5, 0.5)
 	goal_sprite.modulate = Goal.hue_to_color(hue)
@@ -186,6 +210,6 @@ func update_sprite() -> void:
 ## currently move.
 func get_movement_angles() -> Array[float]:
 	var angles: Array[float] = [angle - PI * 0.5, angle + PI * 0.5]
-	if vertex == loop.get_parent():
+	if can_move_out():
 		angles.append(angle)
 	return angles
