@@ -276,7 +276,7 @@ func generate_corridor_loop() -> void:
 	elif choice == 5:
 		var key_id := Key.new_id()
 		generate_key(random_direction, key_id)
-		#append_wall(random_direction)
+		append_wall(random_direction)
 		generate_locked_wall(-random_direction, key_id)
 	else:
 		assert(false)
@@ -345,8 +345,9 @@ func generate_locked_wall(direction: float, key_id: int) -> void:
 	if should_add_child():
 		var child := append_loop(direction)
 		# Locked wall on both sides
-		for child_direction in DIRECTIONS:
-			child.generate_locked_wall(child_direction, key_id)
+		var random_direction := get_random_direction()
+		child.generate_locked_wall(random_direction, key_id)
+		child.append_wall(-random_direction)
 		child.fill_with_corridors()
 	# Locked wall vertex
 	else:
