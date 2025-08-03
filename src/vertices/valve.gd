@@ -4,7 +4,7 @@ class_name Valve extends Vertex
 const VALVE_RADIUS := 1.0 / 6.0
 const VALVE_DRAW_SCALE := Loop.DRAW_RADIUS / 6.0
 
-const SCENE := preload("res://src/valve.tscn")
+const SCENE := preload("res://src/vertices/valve.tscn")
 
 static var triangle_points := PackedVector2Array(
 	[Vector2(-0.75, +1.0), Vector2(+1.5, 0.0), Vector2(-0.75, -1.0)]

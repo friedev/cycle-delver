@@ -1,6 +1,6 @@
 class_name Key extends Vertex
 
-const SCENE := preload("res://src/key.tscn")
+const SCENE := preload("res://src/vertices/key.tscn")
 
 ## Additional distance added to the radius at which the key is drawn.
 const PADDING := 192.0

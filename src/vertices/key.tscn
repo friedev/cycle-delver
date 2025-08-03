@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://x4rjdnjtfr63"]
 
-[ext_resource type="Script" uid="uid://xlgp2mfbxoy5" path="res://src/key.gd" id="1_0r25b"]
+[ext_resource type="Script" uid="uid://xlgp2mfbxoy5" path="res://src/vertices/key.gd" id="1_0r25b"]
 [ext_resource type="Texture2D" uid="uid://ba8uq341dchhj" path="res://assets/sprites/key.svg" id="2_1hnao"]
 
 [node name="Key" type="Node2D" node_paths=PackedStringArray("sprite", "label") groups=["keys"]]

@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://jpehha3aldqf"]
 
-[ext_resource type="Script" uid="uid://lo23xw2p6kyb" path="res://src/valve.gd" id="1_vvidc"]
+[ext_resource type="Script" uid="uid://lo23xw2p6kyb" path="res://src/vertices/valve.gd" id="1_vvidc"]
 [ext_resource type="Texture2D" uid="uid://b7tl7syhfrrv1" path="res://assets/sprites/lock.svg" id="2_vty0f"]
 
 [node name="Valve" type="Node2D" node_paths=PackedStringArray("lock", "lock_sprite", "lock_label") groups=["valves"]]

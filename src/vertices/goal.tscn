@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://dgbijpxwl3ay5"]
 
 [ext_resource type="Texture2D" uid="uid://d1lxqjsq4cg6w" path="res://assets/sprites/crown.svg" id="1_sxph7"]
-[ext_resource type="Script" uid="uid://bq113mcxbidvj" path="res://src/goal.gd" id="2_unryf"]
+[ext_resource type="Script" uid="uid://bq113mcxbidvj" path="res://src/vertices/goal.gd" id="2_unryf"]
 
 [node name="Goal" type="Sprite2D"]
 texture = ExtResource("1_sxph7")
