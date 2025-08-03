@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://3nxyp7h67hfw"]
+[gd_scene load_steps=17 format=3 uid="uid://3nxyp7h67hfw"]
 
 [ext_resource type="Script" uid="uid://dkbodoewpo82t" path="res://src/vertices/loop.gd" id="1_eewff"]
 [ext_resource type="Script" uid="uid://dwc5lpsh6ew12" path="res://src/my_camera.gd" id="2_5q4o7"]
@@ -6,22 +6,31 @@
 [ext_resource type="Texture2D" uid="uid://d1lxqjsq4cg6w" path="res://assets/sprites/crown.svg" id="3_fyndt"]
 [ext_resource type="Script" uid="uid://col70vogyjsa7" path="res://src/collected_keys.gd" id="4_fyndt"]
 [ext_resource type="AudioStream" uid="uid://du2hp2br2t7fe" path="res://assets/sound/move_1.ogg" id="4_kmhfv"]
+[ext_resource type="AudioStream" uid="uid://dw4jpvpxmytkt" path="res://assets/sound/move_unpitched.wav" id="4_kqbth"]
+[ext_resource type="Script" uid="uid://t6ikuwwhpapv" path="res://src/random_pitch_sound.gd" id="5_d3u4l"]
 [ext_resource type="AudioStream" uid="uid://cb7jdqqf1yhnh" path="res://assets/sound/move_2.ogg" id="5_mgm53"]
 [ext_resource type="AudioStream" uid="uid://bgv0540b5k3qr" path="res://assets/sound/move_3.ogg" id="6_uewes"]
 [ext_resource type="AudioStream" uid="uid://cfelxhlake0tb" path="res://assets/sound/move_4.ogg" id="7_kqbth"]
 [ext_resource type="AudioStream" uid="uid://b8ts6qyarsbrp" path="res://assets/sound/move_5.ogg" id="8_srxbw"]
+[ext_resource type="AudioStream" uid="uid://bg0ybp8juhc56" path="res://assets/sound/collect_key.wav" id="11_mlv6i"]
 [ext_resource type="Script" uid="uid://dgd2wm6hy3505" path="res://src/fade_transition.gd" id="11_uewes"]
+[ext_resource type="AudioStream" uid="uid://bt5wepysxfgk7" path="res://assets/sound/unlock.wav" id="12_tb146"]
+[ext_resource type="AudioStream" uid="uid://dgp2im8f7px24" path="res://assets/sound/goal.wav" id="13_tb146"]
 
 [node name="Main" type="Node2D"]
 
 [node name="Loop" type="Node2D" parent="."]
 script = ExtResource("1_eewff")
 
-[node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop", "goal_sprite", "move_sounds")]
+[node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop", "goal_sprite", "move_sound_unpitched", "move_sounds_pitched", "collect_key_sound", "unlock_sound", "goal_sound")]
 script = ExtResource("2_gh0ne")
 loop = NodePath("../Loop")
 goal_sprite = NodePath("GoalSprite")
-move_sounds = [NodePath("MoveSound1"), NodePath("MoveSound2"), NodePath("MoveSound3"), NodePath("MoveSound4"), NodePath("MoveSound5")]
+move_sound_unpitched = NodePath("MoveSoundUnpitched")
+move_sounds_pitched = [NodePath("MoveSoundPitched1"), NodePath("MoveSoundPitched2"), NodePath("MoveSoundPitched3"), NodePath("MoveSoundPitched4"), NodePath("MoveSoundPitched5")]
+collect_key_sound = NodePath("CollectKeySound")
+unlock_sound = NodePath("UnlockSound")
+goal_sound = NodePath("GoalSound")
 
 [node name="GoalSprite" type="Sprite2D" parent="Player"]
 visible = false
@@ -29,29 +38,51 @@ position = Vector2(0, -112)
 scale = Vector2(0.5, 0.5)
 texture = ExtResource("3_fyndt")
 
-[node name="MoveSound1" type="AudioStreamPlayer" parent="Player"]
+[node name="MoveSoundUnpitched" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("4_kqbth")
+max_polyphony = 3
+bus = &"Sound"
+script = ExtResource("5_d3u4l")
+
+[node name="MoveSoundPitched1" type="AudioStreamPlayer" parent="Player"]
 stream = ExtResource("4_kmhfv")
 max_polyphony = 3
 bus = &"Sound"
 
-[node name="MoveSound2" type="AudioStreamPlayer" parent="Player"]
+[node name="MoveSoundPitched2" type="AudioStreamPlayer" parent="Player"]
 stream = ExtResource("5_mgm53")
 max_polyphony = 3
 bus = &"Sound"
 
-[node name="MoveSound3" type="AudioStreamPlayer" parent="Player"]
+[node name="MoveSoundPitched3" type="AudioStreamPlayer" parent="Player"]
 stream = ExtResource("6_uewes")
 max_polyphony = 3
 bus = &"Sound"
 
-[node name="MoveSound4" type="AudioStreamPlayer" parent="Player"]
+[node name="MoveSoundPitched4" type="AudioStreamPlayer" parent="Player"]
 stream = ExtResource("7_kqbth")
 max_polyphony = 3
 bus = &"Sound"
 
-[node name="MoveSound5" type="AudioStreamPlayer" parent="Player"]
+[node name="MoveSoundPitched5" type="AudioStreamPlayer" parent="Player"]
 stream = ExtResource("8_srxbw")
 max_polyphony = 3
+bus = &"Sound"
+
+[node name="CollectKeySound" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("11_mlv6i")
+max_polyphony = 3
+bus = &"Sound"
+script = ExtResource("5_d3u4l")
+
+[node name="UnlockSound" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("12_tb146")
+max_polyphony = 3
+bus = &"Sound"
+script = ExtResource("5_d3u4l")
+
+[node name="GoalSound" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("13_tb146")
 bus = &"Sound"
 
 [node name="Camera2D" type="Camera2D" parent="."]

@@ -19,11 +19,16 @@ var angle: float:
 ## The current loop the player is on, meaning the one on which they could move
 ## clockwise or counterclockwise.
 @export var loop: Loop
+@export var use_pitched_movement_sounds: bool
 
 @export_group("Internal Nodes")
 ## Sprite shown after reaching the goal.
 @export var goal_sprite: Sprite2D
-@export var move_sounds: Array[AudioStreamPlayer]
+@export var move_sound_unpitched: RandomPitchSound
+@export var move_sounds_pitched: Array[AudioStreamPlayer]
+@export var collect_key_sound: RandomPitchSound
+@export var unlock_sound: RandomPitchSound
+@export var goal_sound: AudioStreamPlayer
 
 ## The vertex that the player is currently at. This can be a child of the
 ## current loop, parent of the current loop, or another vertex like a valve.
@@ -160,6 +165,7 @@ func finish_movement() -> void:
 			collected_keys.append(key.key_id)
 			key.collect()
 			vertex = null
+			collect_key_sound.randomize_and_play()
 		elif vertex is Valve:
 			var valve: Valve = vertex
 			if valve.key_id in collected_keys:
@@ -167,13 +173,18 @@ func finish_movement() -> void:
 				collected_keys.erase(valve.key_id)
 				valve.unlock()
 				vertex = null
+				unlock_sound.randomize_and_play()
 		elif vertex is Goal:
 			var goal: Goal = vertex
 			goal.queue_free()
 			reached_goal = true
 			vertex = null
+			goal_sound.play()
 	update_sprite()
-	move_sounds[clampi(loop.depth - 1, 0, len(move_sounds) - 1)].play()
+	if use_pitched_movement_sounds:
+		move_sounds_pitched[clampi(loop.depth - 1, 0, len(move_sounds_pitched) - 1)].play()
+	else:
+		move_sound_unpitched.randomize_and_play()
 	move_finished.emit()
 	if buffered_input != null:
 		handle_input_event(buffered_input, true)
@@ -219,6 +230,7 @@ func move_out() -> void:
 
 func ascend() -> void:
 	in_game = false
+	goal_sound.play()
 	create_tween().tween_property(self, "global_position", global_position.normalized() * ASCEND_RADIUS, 1.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	SignalBus.game_over.emit()
 
