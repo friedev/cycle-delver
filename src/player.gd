@@ -158,14 +158,13 @@ func finish_movement() -> void:
 		if vertex is Key:
 			var key: Key = vertex
 			collected_keys.append(key.key_id)
-			key.get_parent().remove_child(key)
-			SignalBus.key_collected.emit(key)
+			key.collect()
 			vertex = null
 		elif vertex is Valve:
 			var valve: Valve = vertex
-			if valve.key_id in self.collected_keys:
+			if valve.key_id in collected_keys:
 				SignalBus.key_removed.emit(valve.key_id)
-				self.collected_keys.erase(valve.key_id)
+				collected_keys.erase(valve.key_id)
 				valve.unlock()
 				vertex = null
 		elif vertex is Goal:

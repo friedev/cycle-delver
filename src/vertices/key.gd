@@ -28,6 +28,7 @@ static func generate_display_text() -> void:
 	display_text.shuffle()
 
 
+@export_group("Internal Nodes")
 @export var sprite: Sprite2D
 @export var label: Label
 
@@ -37,6 +38,12 @@ var key_id: int:
 		assert(value >= 0)
 		key_id = value
 		update_label()
+
+# Temporary variables for tracking animation state.
+## Has this key been used to unlock its matching valve?
+var used := false
+## Was this key just collected? (Hasn't finished animating yet.)
+var just_collected := false
 
 
 func _ready() -> void:
@@ -55,3 +62,11 @@ func update_position() -> void:
 func update_label() -> void:
 	if key_id < len(Key.display_text):
 		label.text = str(Key.display_text[key_id])
+
+
+func collect() -> void:
+	erase_from_loop()
+	await create_tween().tween_property(self, "scale", Vector2.ZERO, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN).finished
+	get_parent().remove_child(self)
+	SignalBus.key_collected.emit(self)
+	create_tween().tween_property(self, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
