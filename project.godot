@@ -14,6 +14,8 @@ config/name="Cycle Delver"
 config/version="0.1.0-dev"
 run/main_scene="uid://3nxyp7h67hfw"
 config/features=PackedStringArray("4.4", "GL Compatibility")
+boot_splash/bg_color=Color(0.933333, 0.933333, 0.933333, 1)
+boot_splash/image="uid://dpi2lj31eovi1"
 config/icon="uid://cj8lb20wc4un"
 
 [autoload]
