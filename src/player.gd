@@ -235,3 +235,7 @@ func get_movement_angles() -> Array[float]:
 	if can_move_out():
 		angles.append(angle)
 	return angles
+
+
+func get_target_vertex() -> Vertex:
+	return loop.get_vertex(Player.instance.target_angle)
