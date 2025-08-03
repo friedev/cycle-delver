@@ -3,6 +3,9 @@ class_name Player extends Node2D
 signal move_started
 signal move_finished
 
+const TOP_SPEED := 2.0 * TAU
+const ACCELERATION := 2.0 * TAU
+
 ## Singleton instance.
 static var instance: Player
 
@@ -122,7 +125,12 @@ func move_to_angle(to_angle: float) -> void:
 
 
 func animate_movement(delta: float) -> void:
-	velocity = last_direction * move_toward(absf(velocity), 2.0 * TAU, 2.0 * TAU * delta)
+	var top_speed := TOP_SPEED
+	var acceleration := ACCELERATION
+	if buffered_input != null:
+		top_speed *= 2.0
+		acceleration *= 2.0
+	velocity = last_direction * move_toward(absf(velocity), top_speed, acceleration * delta)
 	if absf(angle_difference(angle, target_angle)) < absf(velocity * delta):
 		finish_movement()
 	else:
