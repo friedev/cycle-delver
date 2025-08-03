@@ -35,6 +35,9 @@ var game_over: bool
 ## List of IDs of keys the player has collected.
 var collected_keys: Array[int]
 
+var buffered_input: InputEvent
+var buffered_input_direction: float
+
 # Data for tracking movement animation
 var moving: bool
 var target_angle: float
@@ -58,14 +61,23 @@ func _draw() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if moving or game_over:
+	if game_over:
+		return
+	if moving:
+		for action in ["move_ccw", "move_cw", "move_out"]:
+			if event.is_action_pressed(action):
+				buffered_input = event
+				buffered_input_direction = Input.get_axis("move_ccw", "move_cw")
+				break
 		return
 	handle_input_event(event)
 
 
-func handle_input_event(event: InputEvent) -> void:
+func handle_input_event(event: InputEvent, buffered := false) -> void:
 	assert(not moving and not game_over)
-	var input_direction := Input.get_axis("move_ccw", "move_cw")
+	var input_direction := (
+		buffered_input_direction if buffered else Input.get_axis("move_ccw", "move_cw")
+	)
 	if not is_zero_approx(input_direction):
 		move_to_next_vertex(input_direction)
 	elif event.is_action_pressed("move_out"):
@@ -149,6 +161,9 @@ func finish_movement() -> void:
 			vertex = null
 	update_sprite()
 	move_finished.emit()
+	if buffered_input != null:
+		handle_input_event(buffered_input, true)
+		buffered_input = null
 
 
 ## Move in the given direction around the current loop until reaching the next
@@ -167,8 +182,7 @@ func move_to_next_vertex(direction: float) -> void:
 		next_vertex_angle = loop.get_next_vertex_angle(next_vertex_angle, direction)
 		next_vertex = loop.get_vertex(next_vertex_angle)
 		skip_next_vertex = (
-			# This first condition should only happen due to the level entrance
-			next_vertex == vertex or
+			(next_vertex == vertex and vertex is Entrance) or
 			(next_vertex is Valve and (next_vertex as Valve).is_passable(direction))
 		)
 
