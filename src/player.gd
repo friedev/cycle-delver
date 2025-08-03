@@ -166,8 +166,7 @@ func finish_movement() -> void:
 			if valve.key_id in self.collected_keys:
 				SignalBus.key_removed.emit(valve.key_id)
 				self.collected_keys.erase(valve.key_id)
-				valve.remove_from_parent()
-				valve.queue_free()
+				valve.unlock()
 				vertex = null
 		elif vertex is Goal:
 			var goal: Goal = vertex

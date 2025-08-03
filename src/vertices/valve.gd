@@ -14,9 +14,11 @@ static var rectangle_points := PackedVector2Array(
 )
 static var points_scaled := false
 
+@export_group("Internal Nodes")
 @export var lock: Node2D
 @export var lock_sprite: Sprite2D
 @export var lock_label: Label
+@export var unlock_particles: GPUParticles2D
 
 ## ID of the key that unlocks this valve. Negative means no lock.
 var key_id := -1:
@@ -70,3 +72,16 @@ func update_lock() -> void:
 	lock.visible = key_id >= 0
 	if key_id >= 0 and key_id < len(Key.display_text):
 		lock_label.text = str(Key.display_text[key_id])
+
+
+func unlock() -> void:
+	# Emit particles and reparent to this node's parent so they can finish
+	# emitting while this node frees itself
+	#remove_child(unlock_particles)
+	#add_sibling(unlock_particles)
+	#unlock_particles.global_position = global_position
+	#unlock_particles.modulate = self_modulate
+	#unlock_particles.emitting = true
+	#get_tree().create_timer(unlock_particles.lifetime).timeout.connect(unlock_particles.queue_free)
+	remove_from_parent()
+	queue_free()

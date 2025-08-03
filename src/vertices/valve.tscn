@@ -1,13 +1,33 @@
-[gd_scene load_steps=3 format=3 uid="uid://jpehha3aldqf"]
+[gd_scene load_steps=6 format=3 uid="uid://jpehha3aldqf"]
 
 [ext_resource type="Script" uid="uid://lo23xw2p6kyb" path="res://src/vertices/valve.gd" id="1_vvidc"]
 [ext_resource type="Texture2D" uid="uid://b7tl7syhfrrv1" path="res://assets/sprites/lock.svg" id="2_vty0f"]
 
-[node name="Valve" type="Node2D" node_paths=PackedStringArray("lock", "lock_sprite", "lock_label") groups=["valves"]]
+[sub_resource type="Curve" id="Curve_64q0d"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), -1.73184, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_qkbxl"]
+curve = SubResource("Curve_64q0d")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_mkoa6"]
+lifetime_randomness = 0.5
+particle_flag_disable_z = true
+angle_min = -180.0
+angle_max = 180.0
+spread = 180.0
+initial_velocity_max = 2048.0
+gravity = Vector3(0, 128, 0)
+scale_min = 4.0
+scale_max = 8.0
+scale_curve = SubResource("CurveTexture_qkbxl")
+
+[node name="Valve" type="Node2D" node_paths=PackedStringArray("lock", "lock_sprite", "lock_label", "unlock_particles") groups=["valves"]]
 script = ExtResource("1_vvidc")
 lock = NodePath("Lock")
 lock_sprite = NodePath("Lock/Sprite2D")
 lock_label = NodePath("Lock/Label")
+unlock_particles = NodePath("UnlockParticles")
 
 [node name="Lock" type="Node2D" parent="."]
 visible = false
@@ -26,3 +46,10 @@ offset_bottom = 125.0
 theme_override_font_sizes/font_size = 112
 text = "88"
 horizontal_alignment = 1
+
+[node name="UnlockParticles" type="GPUParticles2D" parent="."]
+emitting = false
+amount = 12
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_mkoa6")
