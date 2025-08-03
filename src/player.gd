@@ -21,8 +21,11 @@ static var instance: Player
 	set(value):
 		loop = value
 		update_position.call_deferred()
+
+@export_group("Internal Nodes")
 ## Sprite shown after reaching the goal.
 @export var goal_sprite: Sprite2D
+@export var move_sounds: Array[AudioStreamPlayer]
 
 ## The vertex that the player is currently at. This can be a child of the
 ## current loop, parent of the current loop, or another vertex like a valve.
@@ -168,6 +171,7 @@ func finish_movement() -> void:
 			reached_goal = true
 			vertex = null
 	update_sprite()
+	move_sounds[clampi(loop.depth - 1, 0, len(move_sounds) - 1)].play()
 	move_finished.emit()
 	if buffered_input != null:
 		handle_input_event(buffered_input, true)

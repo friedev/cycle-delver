@@ -1,27 +1,58 @@
-[gd_scene load_steps=6 format=3 uid="uid://3nxyp7h67hfw"]
+[gd_scene load_steps=11 format=3 uid="uid://3nxyp7h67hfw"]
 
 [ext_resource type="Script" uid="uid://dkbodoewpo82t" path="res://src/vertices/loop.gd" id="1_eewff"]
 [ext_resource type="Script" uid="uid://dwc5lpsh6ew12" path="res://src/my_camera.gd" id="2_5q4o7"]
 [ext_resource type="Script" uid="uid://csk7g82a18dv2" path="res://src/player.gd" id="2_gh0ne"]
 [ext_resource type="Texture2D" uid="uid://d1lxqjsq4cg6w" path="res://assets/sprites/crown.svg" id="3_fyndt"]
 [ext_resource type="Script" uid="uid://col70vogyjsa7" path="res://src/collected_keys.gd" id="4_fyndt"]
+[ext_resource type="AudioStream" uid="uid://du2hp2br2t7fe" path="res://assets/sound/move_1.ogg" id="4_kmhfv"]
+[ext_resource type="AudioStream" uid="uid://cb7jdqqf1yhnh" path="res://assets/sound/move_2.ogg" id="5_mgm53"]
+[ext_resource type="AudioStream" uid="uid://bgv0540b5k3qr" path="res://assets/sound/move_3.ogg" id="6_uewes"]
+[ext_resource type="AudioStream" uid="uid://cfelxhlake0tb" path="res://assets/sound/move_4.ogg" id="7_kqbth"]
+[ext_resource type="AudioStream" uid="uid://b8ts6qyarsbrp" path="res://assets/sound/move_5.ogg" id="8_srxbw"]
 
 [node name="Main" type="Node2D"]
 
 [node name="Loop" type="Node2D" parent="."]
 script = ExtResource("1_eewff")
 
-[node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop", "goal_sprite")]
+[node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop", "goal_sprite", "move_sounds")]
 script = ExtResource("2_gh0ne")
 angle = -1.5708
 loop = NodePath("../Loop")
 goal_sprite = NodePath("GoalSprite")
+move_sounds = [NodePath("MoveSound1"), NodePath("MoveSound2"), NodePath("MoveSound3"), NodePath("MoveSound4"), NodePath("MoveSound5")]
 
 [node name="GoalSprite" type="Sprite2D" parent="Player"]
 visible = false
 position = Vector2(0, -112)
 scale = Vector2(0.5, 0.5)
 texture = ExtResource("3_fyndt")
+
+[node name="MoveSound1" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("4_kmhfv")
+max_polyphony = 3
+bus = &"Sound"
+
+[node name="MoveSound2" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("5_mgm53")
+max_polyphony = 3
+bus = &"Sound"
+
+[node name="MoveSound3" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("6_uewes")
+max_polyphony = 3
+bus = &"Sound"
+
+[node name="MoveSound4" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("7_kqbth")
+max_polyphony = 3
+bus = &"Sound"
+
+[node name="MoveSound5" type="AudioStreamPlayer" parent="Player"]
+stream = ExtResource("8_srxbw")
+max_polyphony = 3
+bus = &"Sound"
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(0.25, 0.25)
