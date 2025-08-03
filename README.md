@@ -12,13 +12,14 @@ Arrows can only be passed through in the indicated direction.
 
 ### Controls
 
-- Left Click: move toward mouse
-- Left/A: move counterclockwise
-- Right/D: move clockwise
-- Up/W: move onto outer circle
-- Scroll Up/R: zoom in
-- Scroll Down/F: zoom out
-- M: zoom all the way in or out
+- Left click to move toward mouse **(recommended)**
+- Controller left stick to move toward direction **(recommended)**
+- Move counterclockwise: left, A, D-pad left
+- Move clockwise: right, D, D-pad right
+- Move onto outer loop: up, W, D-pad up
+- Zoom in: scroll up, R, RB
+- Zoom out: scroll down, F, LB
+- Zoom fully in/out: M, D-pad down
 
 ## Credits
 

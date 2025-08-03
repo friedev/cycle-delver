@@ -43,6 +43,7 @@ var collected_keys: Array[int]
 
 var buffered_input: InputEvent
 var buffered_input_direction: float
+var buffered_input_vector: Vector2
 
 # Data for tracking movement animation
 var moving: bool
@@ -66,6 +67,16 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, Loop.DRAW_RADIUS / 12.0, Color.WHITE, true, -1.0, true)
 
 
+## Get the angular input direction (clockwise or counterclockwise).
+func get_input_direction() -> float:
+	return Input.get_axis("move_ccw", "move_cw")
+
+
+## Get the absolute/cardinal input direction.
+func get_input_vector() -> Vector2:
+	return Input.get_vector("move_left", "move_right", "move_up", "move_down")
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if game_over:
 		return
@@ -73,7 +84,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		for action in ["move_ccw", "move_cw", "move_out"]:
 			if event.is_action_pressed(action):
 				buffered_input = event
-				buffered_input_direction = Input.get_axis("move_ccw", "move_cw")
+				buffered_input_direction = get_input_direction()
+				buffered_input_vector = get_input_vector()
 				break
 		return
 	handle_input_event(event)
@@ -81,30 +93,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func handle_input_event(event: InputEvent, buffered := false) -> void:
 	assert(not moving and not game_over)
-	var input_direction := (
-		buffered_input_direction if buffered else Input.get_axis("move_ccw", "move_cw")
-	)
+	var input_direction := buffered_input_direction if buffered else get_input_direction()
+	var input_vector := buffered_input_vector if buffered else get_input_vector()
 	if not is_zero_approx(input_direction):
 		move_to_next_vertex(input_direction)
 	elif event.is_action_pressed("move_out"):
 		if can_move_out():
 			move_out()
 	elif event.is_action_pressed("move_toward_mouse"):
-		var mouse_angle := global_position.angle_to_point(get_global_mouse_position())
-		var movement_angles: Array[float] = get_movement_angles()
-		var closest_angle_index: int
-		var closest_angle_difference := INF
-		for i in range(len(movement_angles)):
-			var difference := absf(angle_difference(mouse_angle, movement_angles[i]))
-			if difference < closest_angle_difference:
-				closest_angle_index = i
-				closest_angle_difference = difference
-		if closest_angle_index == 0:
-			move_to_next_vertex(-1.0)
-		elif closest_angle_index == 1:
-			move_to_next_vertex(+1.0)
-		else:
-			move_out()
+		move_toward_angle(global_position.angle_to_point(get_global_mouse_position()))
+	elif not input_vector.is_zero_approx():
+		move_toward_angle(input_vector.angle())
 
 
 func _process(delta: float) -> void:
@@ -218,6 +217,26 @@ func move_out() -> void:
 func ascend() -> void:
 	game_over = true
 	create_tween().tween_property(self, "global_position", Vector2.UP * Loop.DRAW_RADIUS * 2.0, 4.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+
+## Move in the direction closest to the given angle. This doesn't take you
+## toward that angle around the loop, but rather along the path at that angle
+## from the player.
+func move_toward_angle(toward_angle: float) -> void:
+	var movement_angles: Array[float] = get_movement_angles()
+	var closest_angle_index: int
+	var closest_angle_difference := INF
+	for i in range(len(movement_angles)):
+		var difference := absf(angle_difference(toward_angle, movement_angles[i]))
+		if difference < closest_angle_difference:
+			closest_angle_index = i
+			closest_angle_difference = difference
+	if closest_angle_index == 0:
+		move_to_next_vertex(-1.0)
+	elif closest_angle_index == 1:
+		move_to_next_vertex(+1.0)
+	else:
+		move_out()
 
 
 func update_position() -> void:
