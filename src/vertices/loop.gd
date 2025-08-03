@@ -2,7 +2,7 @@ class_name Loop extends Vertex
 
 const DRAW_RADIUS := 1024.0
 const BORDER_RADIUS := DRAW_RADIUS / 16.0
-const MAX_DEPTH := 4
+const MAX_DEPTH := 3
 const SLOTS_PER_SIDE := 3
 
 ## Counterclockwise (-1) and clockwise (+1.0).
@@ -11,7 +11,8 @@ const DIRECTIONS: Array[float] = [-1.0, +1.0]
 ## Radius of a child loop as a fraction of its parent's radius.
 const CHILD_RADIUS := 1.0 / 4.0
 ## Maximum radius encompassing all descendants as fraction of the parent radius.
-## (See math in comment below.)
+## (See math in comment below. It makes more sense when it's 1/X but works
+## regardless.)
 const DESCENDANT_RADIUS_BOUND := 1.0 / (1.0 / CHILD_RADIUS - 1.0)
 
 # If the maximum radius of all children is expressed as 1/R, where R is the
@@ -72,7 +73,7 @@ var vertices_cw: Array[Vertex]
 func _ready() -> void:
 	if has_parent_loop():
 		super._ready()
-		scale = Vector2.ONE * 0.25
+		scale = Vector2.ONE * CHILD_RADIUS
 	else:
 		radius = DRAW_RADIUS
 		generate_root()
