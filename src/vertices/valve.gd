@@ -83,5 +83,6 @@ func unlock() -> void:
 	#unlock_particles.modulate = self_modulate
 	#unlock_particles.emitting = true
 	#get_tree().create_timer(unlock_particles.lifetime).timeout.connect(unlock_particles.queue_free)
-	remove_from_parent()
+	erase_from_loop()
+	await create_tween().tween_property(self, "scale", Vector2.ZERO, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT).finished
 	queue_free()

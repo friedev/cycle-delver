@@ -158,7 +158,7 @@ func finish_movement() -> void:
 		if vertex is Key:
 			var key: Key = vertex
 			collected_keys.append(key.key_id)
-			key.remove_from_parent()
+			key.get_parent().remove_child(key)
 			SignalBus.key_collected.emit(key)
 			vertex = null
 		elif vertex is Valve:
@@ -170,7 +170,6 @@ func finish_movement() -> void:
 				vertex = null
 		elif vertex is Goal:
 			var goal: Goal = vertex
-			goal.remove_from_parent()
 			goal.queue_free()
 			reached_goal = true
 			vertex = null
