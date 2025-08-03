@@ -38,21 +38,19 @@ const DESCENDANT_RADIUS_BOUND := 1.0 / (1.0 / CHILD_RADIUS - 1.0)
 # 0.33203125
 # 0.3330078125
 
-## Hue of the color of loops for each depth, OFFSET BY 1. Depth 0 is actually
-## used for storing the environment clear color.
+## Hue of the color of loops for each depth.
 static var hues_by_depth: Array[float]
 
 
 ## Get the hue for vertices at this depth.
 static func depth_to_hue(depth_arg: int) -> float:
-	if len(hues_by_depth) < MAX_DEPTH + 2:
-		var hue_count := MAX_DEPTH + 2
+	if len(hues_by_depth) < MAX_DEPTH + 1:
+		var hue_count := MAX_DEPTH + 1
 		var hue_offset := randf() / hue_count
-		for i in range(MAX_DEPTH + 2):
+		for i in range(MAX_DEPTH + 1):
 			hues_by_depth.append(hue_offset + float(i) / hue_count)
 		hues_by_depth.shuffle()
-		RenderingServer.set_default_clear_color(hue_to_fill_color(hues_by_depth[0]))
-	return hues_by_depth[depth_arg + 1]
+	return hues_by_depth[depth_arg]
 
 
 ## Get the fill color associated with a hue.
