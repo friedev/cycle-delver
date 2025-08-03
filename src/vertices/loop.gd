@@ -270,13 +270,13 @@ func generate_corridor_loop() -> void:
 		generate_valve(-random_direction, false)
 	#   K-+-L
 	#  /     \
-	# --      |
+	# <       |
 	#  \     /
 	#   \-+-/
 	elif choice == 5:
 		var key_id := Key.new_id()
 		generate_key(random_direction, key_id)
-		append_wall(random_direction)
+		generate_valve(random_direction, false)
 		generate_locked_wall(-random_direction, key_id)
 	else:
 		assert(false)
