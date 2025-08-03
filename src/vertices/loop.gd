@@ -176,6 +176,8 @@ func get_random_direction() -> float:
 
 
 func generate_root() -> void:
+	# Static variables persist across scene reloads, so we have to reset it here
+	hues_by_depth.clear()
 	generate_corridor_loop()
 	place_entrance()
 	place_goal()

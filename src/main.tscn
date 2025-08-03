@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://3nxyp7h67hfw"]
+[gd_scene load_steps=12 format=3 uid="uid://3nxyp7h67hfw"]
 
 [ext_resource type="Script" uid="uid://dkbodoewpo82t" path="res://src/vertices/loop.gd" id="1_eewff"]
 [ext_resource type="Script" uid="uid://dwc5lpsh6ew12" path="res://src/my_camera.gd" id="2_5q4o7"]
@@ -10,6 +10,7 @@
 [ext_resource type="AudioStream" uid="uid://bgv0540b5k3qr" path="res://assets/sound/move_3.ogg" id="6_uewes"]
 [ext_resource type="AudioStream" uid="uid://cfelxhlake0tb" path="res://assets/sound/move_4.ogg" id="7_kqbth"]
 [ext_resource type="AudioStream" uid="uid://b8ts6qyarsbrp" path="res://assets/sound/move_5.ogg" id="8_srxbw"]
+[ext_resource type="Script" uid="uid://dgd2wm6hy3505" path="res://src/fade_transition.gd" id="11_uewes"]
 
 [node name="Main" type="Node2D"]
 
@@ -64,3 +65,18 @@ script = ExtResource("2_5q4o7")
 position = Vector2(16, 15)
 scale = Vector2(0.167, 0.167)
 script = ExtResource("4_fyndt")
+
+[node name="CanvasLayer2" type="CanvasLayer" parent="."]
+
+[node name="FadeColor" type="ColorRect" parent="CanvasLayer2"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.933333, 0.933333, 0.933333, 1)
+script = ExtResource("11_uewes")
+duration = 1.5
+tween_trans = 1
+tween_ease = 2

@@ -5,6 +5,7 @@ signal move_finished
 
 const TOP_SPEED := 2.0 * TAU
 const ACCELERATION := 2.0 * TAU
+const ASCEND_ACCELERATION := 100.0
 
 ## Singleton instance.
 static var instance: Player
@@ -50,6 +51,7 @@ var moving: bool
 var target_angle: float
 var last_direction: float
 var velocity: float
+var ascend_velocity: float
 
 
 func _enter_tree() -> void:
@@ -107,7 +109,10 @@ func handle_input_event(event: InputEvent, buffered := false) -> void:
 
 
 func _process(delta: float) -> void:
-	if moving:
+	if game_over:
+		ascend_velocity += ASCEND_ACCELERATION * delta
+		global_position.y -= ascend_velocity * delta
+	elif moving:
 		animate_movement(delta)
 
 
@@ -216,7 +221,8 @@ func move_out() -> void:
 
 func ascend() -> void:
 	game_over = true
-	create_tween().tween_property(self, "global_position", Vector2.UP * Loop.DRAW_RADIUS * 2.0, 4.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await get_tree().create_timer(2.5).timeout
+	SignalBus.game_over.emit()
 
 
 ## Move in the direction closest to the given angle. This doesn't take you
