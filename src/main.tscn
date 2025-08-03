@@ -19,7 +19,6 @@ script = ExtResource("1_eewff")
 
 [node name="Player" type="Node2D" parent="." node_paths=PackedStringArray("loop", "goal_sprite", "move_sounds")]
 script = ExtResource("2_gh0ne")
-angle = -1.5708
 loop = NodePath("../Loop")
 goal_sprite = NodePath("GoalSprite")
 move_sounds = [NodePath("MoveSound1"), NodePath("MoveSound2"), NodePath("MoveSound3"), NodePath("MoveSound4"), NodePath("MoveSound5")]

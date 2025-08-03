@@ -5,23 +5,20 @@ signal move_finished
 
 const TOP_SPEED := 2.0 * TAU
 const ACCELERATION := 2.0 * TAU
-const ASCEND_ACCELERATION := 100.0
+const ASCEND_RADIUS := Loop.DRAW_RADIUS * 1.5
 
 ## Singleton instance.
 static var instance: Player
 
 ## The angle from the center of the player's current loop at which the player
 ## is currently located.
-@export_range(-180.0, 180.0, 0.001, "radians_as_degrees") var angle: float:
+var angle: float:
 	set(value):
 		angle = value
-		update_position.call_deferred()
+		update_position()
 ## The current loop the player is on, meaning the one on which they could move
 ## clockwise or counterclockwise.
-@export var loop: Loop:
-	set(value):
-		loop = value
-		update_position.call_deferred()
+@export var loop: Loop
 
 @export_group("Internal Nodes")
 ## Sprite shown after reaching the goal.
@@ -37,7 +34,9 @@ var reached_goal: bool:
 	set(value):
 		reached_goal = value
 		goal_sprite.visible = reached_goal
-var game_over: bool
+## Is the player on a loop and generally able to move, as opposed to being in a
+## start- or end-of-game transition.
+var in_game := false
 
 ## List of IDs of keys the player has collected.
 var collected_keys: Array[int]
@@ -51,7 +50,6 @@ var moving: bool
 var target_angle: float
 var last_direction: float
 var velocity: float
-var ascend_velocity: float
 
 
 func _enter_tree() -> void:
@@ -59,10 +57,16 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	angle = PI * -0.5
 	vertex = loop.get_vertex(angle)
-	update_position.call_deferred()
+	update_position()
 	queue_redraw()
 	update_sprite()
+
+	var target_position := global_position
+	global_position = global_position.normalized() * ASCEND_RADIUS
+	await create_tween().tween_property(self, "global_position", target_position, 1.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT).finished
+	in_game = true
 	
 
 func _draw() -> void:
@@ -80,7 +84,7 @@ func get_input_vector() -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if game_over:
+	if not in_game:
 		return
 	if moving:
 		for action in ["move_ccw", "move_cw", "move_out"]:
@@ -94,7 +98,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func handle_input_event(event: InputEvent, buffered := false) -> void:
-	assert(not moving and not game_over)
+	assert(in_game and not moving)
 	var input_direction := buffered_input_direction if buffered else get_input_direction()
 	var input_vector := buffered_input_vector if buffered else get_input_vector()
 	if not is_zero_approx(input_direction):
@@ -109,10 +113,7 @@ func handle_input_event(event: InputEvent, buffered := false) -> void:
 
 
 func _process(delta: float) -> void:
-	if game_over:
-		ascend_velocity += ASCEND_ACCELERATION * delta
-		global_position.y -= ascend_velocity * delta
-	elif moving:
+	if moving:
 		animate_movement(delta)
 
 
@@ -220,8 +221,8 @@ func move_out() -> void:
 
 
 func ascend() -> void:
-	game_over = true
-	await get_tree().create_timer(2.5).timeout
+	in_game = false
+	create_tween().tween_property(self, "global_position", global_position.normalized() * ASCEND_RADIUS, 1.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	SignalBus.game_over.emit()
 
 
