@@ -1,4 +1,5 @@
-class_name Valve extends Vertex
+class_name Valve
+extends Vertex
 
 ## Valve radius as a fraction of parent loop radius.
 const VALVE_RADIUS := 1.0 / 6.0
@@ -7,10 +8,10 @@ const VALVE_DRAW_SCALE := Loop.DRAW_RADIUS / 6.0
 const SCENE := preload("res://src/vertices/valve.tscn")
 
 static var triangle_points := PackedVector2Array(
-	[Vector2(-0.75, +1.0), Vector2(+1.5, 0.0), Vector2(-0.75, -1.0)]
+	[Vector2(-0.75, +1.0), Vector2(+1.5, 0.0), Vector2(-0.75, -1.0)],
 )
 static var rectangle_points := PackedVector2Array(
-	[Vector2(-0.75, +1.0), Vector2(+0.75, +1.0), Vector2(+0.75, -1.0), Vector2(-0.75, -1.0)]
+	[Vector2(-0.75, +1.0), Vector2(+0.75, +1.0), Vector2(+0.75, -1.0), Vector2(-0.75, -1.0)],
 )
 static var points_scaled := false
 
@@ -60,7 +61,7 @@ func update_position() -> void:
 	var inverted := passable_ccw and not passable_cw
 	var mult := -1.0 if inverted else 1.0
 	rotation = angle + mult * PI * 0.5
-	lock.rotation = - rotation
+	lock.rotation = -rotation
 
 
 func is_passable(direction: float) -> bool:

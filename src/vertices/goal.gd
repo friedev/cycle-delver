@@ -1,9 +1,12 @@
-class_name Goal extends Vertex
+class_name Goal
+extends Vertex
 
 const SCENE := preload("res://src/vertices/goal.tscn")
 
+
 static func hue_to_color(hue: float) -> Color:
 	return Color.from_hsv(hue, 0.5, 0.75)
+
 
 func _ready() -> void:
 	super._ready()

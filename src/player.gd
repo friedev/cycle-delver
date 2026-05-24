@@ -1,4 +1,5 @@
-class_name Player extends Node2D
+class_name Player
+extends Node2D
 
 signal move_started
 signal move_finished
@@ -72,7 +73,7 @@ func _ready() -> void:
 	global_position = global_position.normalized() * ASCEND_RADIUS
 	await create_tween().tween_property(self, "global_position", target_position, 1.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT).finished
 	in_game = true
-	
+
 
 func _draw() -> void:
 	draw_circle(Vector2.ZERO, Loop.DRAW_RADIUS / 12.0, Color.WHITE, true, -1.0, true)

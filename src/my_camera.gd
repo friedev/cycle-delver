@@ -1,4 +1,5 @@
-class_name MyCamera extends Camera2D
+class_name MyCamera
+extends Camera2D
 
 @onready var initial_zoom := zoom
 

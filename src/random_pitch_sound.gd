@@ -1,8 +1,10 @@
-class_name RandomPitchSound extends AudioStreamPlayer
+class_name RandomPitchSound
+extends AudioStreamPlayer
 
 @export var pitch_scale_range := 0.25
 
 @onready var base_pitch_scale := pitch_scale
+
 
 func randomize_and_play(from_position := 0.0) -> void:
 	pitch_scale = (

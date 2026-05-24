@@ -1,4 +1,5 @@
-class_name Vertex extends Node2D
+class_name Vertex
+extends Node2D
 
 ## The radius of this vertex itself.
 var radius: float
@@ -28,7 +29,6 @@ var radial_angle := INF:
 				# A = acos((2R^2 - r^2) / 2R^2)
 				radial_angle = acos((pr2 - pow(radius, 2.0)) / pr2)
 		return radial_angle
-
 
 ## I don't know the term for this, but this is the angle (around the center of
 ## THIS LOOP) spanning from the direction to the center of the parent to the

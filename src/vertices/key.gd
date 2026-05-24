@@ -1,4 +1,5 @@
-class_name Key extends Vertex
+class_name Key
+extends Vertex
 
 const SCENE := preload("res://src/vertices/key.tscn")
 
@@ -26,7 +27,6 @@ static func generate_display_text() -> void:
 	for i in range(id_count):
 		display_text.append(str(i + 1))
 	display_text.shuffle()
-
 
 @export_group("Internal Nodes")
 @export var sprite: Sprite2D

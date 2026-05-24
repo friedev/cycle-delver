@@ -1,4 +1,5 @@
-class_name Loop extends Vertex
+class_name Loop
+extends Vertex
 
 const DRAW_RADIUS := 1024.0
 const BORDER_RADIUS := DRAW_RADIUS / 16.0
@@ -21,7 +22,7 @@ const DESCENDANT_RADIUS_BOUND := 1.0 / (1.0 / CHILD_RADIUS - 1.0)
 # separation between child loops that ensures their descendants will never
 # intersect. For instance, the radius of all descendants of children each with
 # radius 1/4 is bounded by 1/3.
-# 
+#
 # You can use this Python code to see how the value asymptotically converges:
 #
 # >>> total_radius = 0.0
@@ -67,6 +68,7 @@ var depth: int
 
 var vertices_ccw: Array[Vertex]
 var vertices_cw: Array[Vertex]
+
 
 func _ready() -> void:
 	if has_parent_loop():
@@ -194,7 +196,7 @@ func place_entrance() -> void:
 	entrance.parent_direction = -1.0
 	entrance.angle = PI * -0.5
 	add_child(entrance)
-	
+
 
 # TODO make this less crappy
 func place_goal() -> void:
@@ -311,9 +313,9 @@ func generate_valve(direction: float, forward: bool) -> void:
 ## Generate a locked valve; it can be passed in one direction, but cannot be
 ## passed in the other direction until unlocked.
 func generate_locked_valve(
-	direction: float,
-	forward: bool,
-	key_id: int
+		direction: float,
+		forward: bool,
+		key_id: int,
 ) -> void:
 	assert(key_id >= 0)
 	# Child acting as a locked valve

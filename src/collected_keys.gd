@@ -3,10 +3,11 @@ extends Node2D
 ## Horizontal spacing between keys.
 const SPACING := 32.0
 
+
 func _ready() -> void:
 	SignalBus.key_collected.connect(_on_key_collected)
 	SignalBus.key_removed.connect(_on_key_removed)
-	
+
 
 func lay_out_keys() -> void:
 	var position_index := 0
@@ -17,7 +18,7 @@ func lay_out_keys() -> void:
 		var texture_size := key.sprite.texture.get_size()
 		var new_position := Vector2(
 			texture_size.x * 0.5 + (texture_size.x + SPACING) * position_index,
-			texture_size.y * 0.5
+			texture_size.y * 0.5,
 		)
 		if key.just_collected:
 			key.position = new_position
@@ -25,7 +26,7 @@ func lay_out_keys() -> void:
 		else:
 			create_tween().tween_property(key, "position", new_position, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 		position_index += 1
-	
+
 
 func _on_key_collected(key: Key) -> void:
 	add_child(key)

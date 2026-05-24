@@ -1,1 +1,2 @@
-class_name Entrance extends Vertex
+class_name Entrance
+extends Vertex
