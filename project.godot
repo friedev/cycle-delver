@@ -21,6 +21,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.933333, 0.933333, 0.933333, 1)
 boot_splash/image="uid://dpi2lj31eovi1"
 config/icon="uid://cj8lb20wc4un"
+config/tags=PackedStringArray("2d", "game_jam", "published", "singleplayer", "turn_based")
 
 [autoload]
 
